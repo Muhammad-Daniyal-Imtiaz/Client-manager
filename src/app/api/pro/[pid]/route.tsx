@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from './../../sutils/supabaseConfig';
 
-
-
-
 // Types definition
 export interface User {
   userid: number;
@@ -15,7 +12,8 @@ export interface TaskAssignment {
   taskassignmentid: number;
   assignedat: string;
   completedat: string | null;
-  users: User;
+  userid: number;
+  users?: User;
 }
 
 export interface Task {
@@ -60,10 +58,11 @@ export interface Template {
   category: string;
   description: string;
   templatephases: TemplatePhase[];
-  phases: Phase[]; // Actual project phases for this template
+  phases: Phase[];
 }
 
 export interface ProjectTemplate {
+  projecttemplateid: number;
   templateid: number;
   isactive: boolean;
   addedat: string;
@@ -74,7 +73,8 @@ export interface TeamMember {
   projectteamid: number;
   role: string;
   addedat: string;
-  user: User;
+  userid: number;
+  users?: User;
 }
 
 export interface ProjectStatistics {
@@ -101,6 +101,8 @@ export interface Project {
   createdbyuserid: number;
   createdat: string;
   updatedat: string;
+  project_password?: string | null;
+  project_token?: string | null;
   templates: Template[];
   team: TeamMember[];
   statistics: ProjectStatistics;
@@ -108,6 +110,8 @@ export interface Project {
 
 export interface ApiResponse {
   project: Project;
+  requiresAuth?: boolean;
+  authError?: string;
 }
 
 // Helper functions
@@ -123,260 +127,446 @@ function calculateProjectStatus(phases: Phase[]): string {
   return 'Not Started';
 }
 
-function calculatePhaseStatus(tasks: Task[]): string {
-  if (!tasks || tasks.length === 0) return 'Not Started';
-  
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(task => task.status === 'Completed').length;
-  const inProgressTasks = tasks.filter(task => task.status === 'In Progress').length;
-  
-  if (completedTasks === totalTasks) return 'Completed';
-  if (inProgressTasks > 0 || completedTasks > 0) return 'In Progress';
-  return 'Not Started';
-}
-
 function isProjectTemplate(data: any): data is ProjectTemplate {
   return data && data.templates && typeof data.templates === 'object';
 }
 
 function isTeamMember(data: any): data is TeamMember {
-  return data && data.users && typeof data.users === 'object';
+  return data && data.userid !== undefined;
 }
 
-function isPhase(data: any): data is Phase {
-  return data && data.phaseid !== undefined;
+// Safe project data fetcher
+async function fetchProjectData(projectId: string): Promise<any> {
+  try {
+    console.log(`📋 Fetching project data for ID: ${projectId}`);
+    
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('projectid', projectId)
+      .single();
+
+    if (error) {
+      console.error('❌ Project fetch error:', error);
+      throw error;
+    }
+
+    console.log('✅ Successfully fetched project');
+    
+    return {
+      ...project,
+      status: project.status || 'Active',
+      updatedat: project.updatedat || project.createdat || new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('💥 Error fetching project data:', error);
+    throw error;
+  }
 }
 
-function isTask(data: any): data is Task {
-  return data && data.taskid !== undefined;
+// Authentication helper
+async function authenticateProjectAccess(
+  projectId: string, 
+  password?: string, 
+  token?: string
+): Promise<{ authorized: boolean; requiresAuth: boolean; error?: string; project?: any }> {
+  
+  try {
+    console.log(`🔐 Authenticating project ${projectId}`, { 
+      hasPassword: !!password, 
+      hasToken: !!token 
+    });
+
+    const TEST_PASSWORD = 'test123';
+    const TEST_TOKEN = '12345678-1234-1234-1234-123456789abc';
+    
+    if (password === TEST_PASSWORD && token === TEST_TOKEN) {
+      console.log('✅ TEST MODE: Authentication successful with test credentials');
+      
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('projectid, projectname')
+        .eq('projectid', projectId)
+        .single();
+
+      if (error || !project) {
+        console.error('❌ Project not found during test authentication');
+        return { authorized: false, requiresAuth: false, error: 'Project not found' };
+      }
+      
+      return { authorized: true, requiresAuth: true, project };
+    }
+    
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('projectid', projectId)
+      .single();
+
+    if (error || !project) {
+      console.error('❌ Project fetch error in auth:', error);
+      return { authorized: false, requiresAuth: false, error: 'Project not found' };
+    }
+
+    console.log('✅ Project found:', { 
+      name: project.projectname,
+      hasPassword: !!project.project_password,
+      hasToken: !!project.project_token
+    });
+
+    const hasPassword = project.project_password !== undefined && project.project_password !== null;
+    const hasToken = project.project_token !== undefined && project.project_token !== null;
+
+    console.log('🔒 Auth requirements:', { hasPassword, hasToken });
+
+    if (!hasPassword && !hasToken) {
+      console.log('✅ No auth required - allowing access');
+      return { authorized: true, requiresAuth: false, project };
+    }
+
+    if ((hasPassword || hasToken) && (!password && !token)) {
+      console.log('❌ Auth required but no credentials provided');
+      return { 
+        authorized: false, 
+        requiresAuth: true, 
+        error: 'This project requires authentication' 
+      };
+    }
+
+    let passwordValid = true;
+    let tokenValid = true;
+
+    if (hasPassword) {
+      passwordValid = password === project.project_password;
+    }
+
+    if (hasToken) {
+      tokenValid = token === project.project_token;
+    }
+
+    if (passwordValid && tokenValid) {
+      console.log('✅ Authentication successful');
+      return { authorized: true, requiresAuth: true, project };
+    } else {
+      console.log('❌ Authentication failed:', { passwordValid, tokenValid });
+      return { 
+        authorized: false, 
+        requiresAuth: true, 
+        error: 'Invalid password or token' 
+      };
+    }
+  } catch (error) {
+    console.error('💥 Authentication error:', error);
+    return { 
+      authorized: false, 
+      requiresAuth: false, 
+      error: 'Authentication failed' 
+    };
+  }
 }
 
-function isTaskAssignment(data: any): data is TaskAssignment {
-  return data && data.taskassignmentid !== undefined;
+// Fixed safe data fetcher
+async function fetchWithErrorHandling<T>(
+  query: any,
+  entityName: string
+): Promise<T | null> {
+  try {
+    const { data, error } = await query;
+    if (error) {
+      console.error(`❌ ${entityName} error:`, error);
+      return null;
+    }
+    console.log(`✅ Found ${Array.isArray(data) ? data.length : data ? 1 : 0} ${entityName}`);
+    return data;
+  } catch (error) {
+    console.error(`💥 ${entityName} fetch error:`, error);
+    return null;
+  }
+}
+
+// Helper to fetch user data by ID
+async function fetchUserData(userId: number): Promise<User | null> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('userid, name, email')
+      .eq('userid', userId)
+      .single();
+
+    if (error) {
+      console.error(`❌ User fetch error for ID ${userId}:`, error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`💥 User fetch error for ID ${userId}:`, error);
+    return null;
+  }
+}
+
+interface ContextParams {
+  pid: string;
 }
 
 export async function GET(
   request: NextRequest,
-  context: { params: { pid: string } }
+  context: { params: ContextParams }
 ): Promise<NextResponse> {
   try {
-    // Await the params to fix the dynamic API route issue
-    const { pid } = await Promise.resolve(context.params);
+    const { pid } = context.params;
     const projectId = pid;
 
     if (!projectId) {
+      console.error('❌ Project ID is required');
       return NextResponse.json(
         { error: 'Project ID is required' },
         { status: 400 }
       );
     }
 
-    console.log(`Fetching project details for ID: ${projectId}`);
+    const url = new URL(request.url);
+    const password = url.searchParams.get('password');
+    const token = url.searchParams.get('token');
 
-    // Fetch project basic details
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('projectid', projectId)
-      .single();
+    console.log(`\n🎯 API Request for project: ${projectId}`, {
+      hasPassword: !!password,
+      hasToken: !!token,
+      url: request.url
+    });
 
-    if (projectError) {
-      console.error('Project fetch error:', projectError);
+    const authResult = await authenticateProjectAccess(
+      projectId, 
+      password || undefined, 
+      token || undefined
+    );
+    
+    if (!authResult.authorized) {
+      console.log('❌ Authentication failed:', authResult.error);
+      return NextResponse.json(
+        { 
+          error: authResult.error || 'Authentication failed',
+          requiresAuth: authResult.requiresAuth
+        },
+        { status: authResult.requiresAuth ? 401 : 404 }
+      );
+    }
+
+    console.log('✅ Authentication successful for project:', projectId);
+
+    const project = await fetchProjectData(projectId);
+
+    if (!project) {
+      console.error('❌ Project not found after authentication');
       return NextResponse.json(
         { error: 'Project not found' },
         { status: 404 }
       );
     }
 
-    console.log(`Project found: ${project.projectname}`);
+    console.log(`📋 Project found: ${project.projectname}`);
 
     // Fetch project templates
-    const { data: projectTemplates, error: templatesError } = await supabase
-      .from('projecttemplates')
-      .select(`
-        templateid,
-        isactive,
-        addedat,
-        templates (
+    const projectTemplates = await fetchWithErrorHandling<any[]>(
+      supabase
+        .from('projecttemplates')
+        .select(`
+          projecttemplateid,
           templateid,
-          templatename,
-          category,
-          description
-        )
-      `)
-      .eq('projectid', projectId)
-      .eq('isactive', true);
-
-    if (templatesError) {
-      console.error('Templates error:', templatesError);
-    } else {
-      console.log(`Found ${projectTemplates?.length || 0} active templates`);
-    }
+          isactive,
+          addedat,
+          templates (
+            templateid,
+            templatename,
+            category,
+            description
+          )
+        `)
+        .eq('projectid', projectId)
+        .eq('isactive', true),
+      'templates'
+    );
 
     // Fetch team members
-    const { data: teamMembers, error: teamError } = await supabase
-      .from('projectteam')
-      .select(`
-        projectteamid,
-        role,
-        addedat,
-        users (
-          userid,
-          name,
-          email
-        )
-      `)
-      .eq('projectid', projectId);
+    const teamMembersData = await fetchWithErrorHandling<any[]>(
+      supabase
+        .from('projectteam')
+        .select(`
+          projectteamid,
+          role,
+          addedat,
+          userid
+        `)
+        .eq('projectid', projectId),
+      'team members'
+    );
 
-    if (teamError) {
-      console.error('Team error:', teamError);
-    } else {
-      console.log(`Found ${teamMembers?.length || 0} team members`);
+    // Process team members with user data
+    const processedTeam: TeamMember[] = [];
+    if (teamMembersData && Array.isArray(teamMembersData)) {
+      console.log(`👥 Processing ${teamMembersData.length} team members...`);
+      
+      for (const member of teamMembersData) {
+        if (isTeamMember(member)) {
+          const userData = await fetchUserData(member.userid);
+          processedTeam.push({
+            ...member,
+            users: userData || undefined
+          });
+        }
+      }
     }
 
-    // Fetch all phases with their tasks and assignments
-    const { data: allPhases, error: phasesError } = await supabase
-      .from('phases')
-      .select(`
-        phaseid,
-        projectid,
-        templateid,
-        phasename,
-        phaseorder,
-        status,
-        createdat,
-        tasks (
-          taskid,
-          taskdescription,
+    // Fetch all phases
+    const allPhases = await fetchWithErrorHandling<any[]>(
+      supabase
+        .from('phases')
+        .select(`
+          phaseid,
+          projectid,
+          templateid,
+          phasename,
+          phaseorder,
           status,
-          duedate,
-          createdat,
-          taskassignments (
-            taskassignmentid,
-            assignedat,
-            completedat,
-            users (
-              userid,
-              name,
-              email
-            )
-          )
-        )
-      `)
-      .eq('projectid', projectId)
-      .order('phaseorder', { ascending: true });
+          createdat
+        `)
+        .eq('projectid', projectId)
+        .order('phaseorder', { ascending: true }),
+      'phases'
+    );
 
-    if (phasesError) {
-      console.error('Phases error:', phasesError);
-    } else {
-      console.log(`Found ${allPhases?.length || 0} phases`);
+    // Fetch tasks for all phases
+    let allTasks: any[] = [];
+    if (allPhases && Array.isArray(allPhases)) {
+      for (const phase of allPhases) {
+        const phaseTasks = await fetchWithErrorHandling<any[]>(
+          supabase
+            .from('tasks')
+            .select(`
+              taskid,
+              phaseid,
+              taskdescription,
+              status,
+              duedate,
+              createdat
+            `)
+            .eq('phaseid', phase.phaseid),
+          `tasks for phase ${phase.phaseid}`
+        );
+
+        if (phaseTasks) {
+          // Fetch task assignments for each task
+          for (const task of phaseTasks) {
+            const taskAssignments = await fetchWithErrorHandling<any[]>(
+              supabase
+                .from('taskassignments')
+                .select(`
+                  taskassignmentid,
+                  taskid,
+                  userid,
+                  assignedat,
+                  completedat
+                `)
+                .eq('taskid', task.taskid),
+              `assignments for task ${task.taskid}`
+            );
+
+            // Process assignments with user data
+            const processedAssignments: TaskAssignment[] = [];
+            if (taskAssignments && Array.isArray(taskAssignments)) {
+              for (const assignment of taskAssignments) {
+                const userData = await fetchUserData(assignment.userid);
+                processedAssignments.push({
+                  ...assignment,
+                  users: userData || undefined
+                });
+              }
+            }
+
+            task.taskassignments = processedAssignments;
+          }
+          allTasks = [...allTasks, ...phaseTasks];
+        }
+      }
     }
 
     // Process templates with their template phases and actual project phases
     const processedTemplates: Template[] = [];
     
     if (projectTemplates && Array.isArray(projectTemplates)) {
+      console.log(`🔄 Processing ${projectTemplates.length} templates...`);
+      
       for (const pt of projectTemplates) {
         if (isProjectTemplate(pt) && pt.templates) {
           // Fetch template phases and tasks
-          const { data: templatePhases, error: templatePhasesError } = await supabase
-            .from('templatephases')
-            .select(`
-              templatephaseid,
-              templateid,
-              phasename,
-              phaseorder,
-              createdat,
-              templatetasks (
-                templatetaskid,
+          const templatePhases = await fetchWithErrorHandling<any[]>(
+            supabase
+              .from('templatephases')
+              .select(`
                 templatephaseid,
-                taskdescription,
+                templateid,
+                phasename,
+                phaseorder,
                 createdat
-              )
-            `)
-            .eq('templateid', pt.templateid)
-            .order('phaseorder', { ascending: true });
+              `)
+              .eq('templateid', pt.templateid)
+              .order('phaseorder', { ascending: true }),
+            `template phases for template ${pt.templateid}`
+          );
+
+          // Fetch template tasks
+          let templateTasksData: any[] = [];
+          if (templatePhases && Array.isArray(templatePhases)) {
+            for (const phase of templatePhases) {
+              const tasks = await fetchWithErrorHandling<any[]>(
+                supabase
+                  .from('templatetasks')
+                  .select(`
+                    templatetaskid,
+                    templatephaseid,
+                    taskdescription,
+                    createdat
+                  `)
+                  .eq('templatephaseid', phase.templatephaseid),
+                `template tasks for phase ${phase.templatephaseid}`
+              );
+              
+              if (tasks) {
+                templateTasksData = [...templateTasksData, ...tasks];
+              }
+            }
+          }
 
           // Get actual project phases for this template
           const templateProjectPhases: Phase[] = (allPhases || [])
             .filter((phase: any) => phase.templateid === pt.templateid)
             .map((phase: any) => {
-              if (isPhase(phase)) {
-                const processedTasks: Task[] = [];
-                if (phase.tasks && Array.isArray(phase.tasks)) {
-                  phase.tasks.forEach((task: any) => {
-                    if (isTask(task)) {
-                      const processedAssignments: TaskAssignment[] = [];
-                      if (task.taskassignments && Array.isArray(task.taskassignments)) {
-                        task.taskassignments.forEach((assignment: any) => {
-                          if (isTaskAssignment(assignment) && assignment.users) {
-                            processedAssignments.push({
-                              taskassignmentid: assignment.taskassignmentid,
-                              assignedat: assignment.assignedat,
-                              completedat: assignment.completedat,
-                              users: assignment.users
-                            });
-                          }
-                        });
-                      }
-
-                      processedTasks.push({
-                        taskid: task.taskid,
-                        taskdescription: task.taskdescription,
-                        status: task.status,
-                        duedate: task.duedate,
-                        createdat: task.createdat,
-                        taskassignments: processedAssignments
-                      });
-                    }
-                  });
-                }
-
-                const calculatedStatus = calculatePhaseStatus(processedTasks);
-                
-                return {
-                  phaseid: phase.phaseid,
-                  projectid: phase.projectid,
-                  templateid: phase.templateid,
-                  phasename: phase.phasename,
-                  phaseorder: phase.phaseorder,
-                  status: phase.status || calculatedStatus,
-                  createdat: phase.createdat,
-                  tasks: processedTasks
-                };
-              }
-              return phase;
+              const phaseTasks = allTasks.filter((task: any) => task.phaseid === phase.phaseid);
+              
+              return {
+                ...phase,
+                tasks: phaseTasks || []
+              };
             });
+
+          // Group template tasks by phase
+          const templatePhasesWithTasks = (templatePhases || []).map((phase: any) => ({
+            ...phase,
+            templatetasks: templateTasksData.filter((task: any) => task.templatephaseid === phase.templatephaseid)
+          }));
 
           processedTemplates.push({
             ...pt.templates,
-            templatephases: templatePhasesError ? [] : (templatePhases as TemplatePhase[] || []),
+            templatephases: templatePhasesWithTasks,
             phases: templateProjectPhases
           });
         }
       }
     }
 
-    console.log(`Processed ${processedTemplates.length} templates`);
+    console.log(`✅ Processed ${processedTemplates.length} templates`);
 
-    // Process team members data
-    const processedTeam: TeamMember[] = [];
-    if (teamMembers && Array.isArray(teamMembers)) {
-      teamMembers.forEach((member: any) => {
-        if (isTeamMember(member) && member.users) {
-          processedTeam.push({
-            projectteamid: member.projectteamid,
-            role: member.role,
-            addedat: member.addedat,
-            user: member.users
-          });
-        }
-      });
-    }
-
-    console.log(`Processed ${processedTeam.length} team members`);
-
-    // Calculate statistics from all templates' phases
+    // Calculate statistics
     const allProjectPhases = processedTemplates.flatMap(template => template.phases);
     const allProjectTasks = allProjectPhases.flatMap(phase => phase.tasks || []);
 
@@ -430,19 +620,23 @@ export async function GET(
           totalTemplatePhases,
           totalTemplateTasks
         }
-      }
+      },
+      requiresAuth: authResult.requiresAuth
     };
 
-    console.log(`API Response prepared successfully for project ${projectId}`);
+    console.log(`\n🎉 API Response prepared successfully for project ${projectId}`);
+    console.log(`- Project: ${project.projectname}`);
     console.log(`- Templates: ${processedTemplates.length}`);
     console.log(`- Project Phases: ${totalPhases}`);
     console.log(`- Project Tasks: ${totalTasks}`);
     console.log(`- Team Members: ${processedTeam.length}`);
     console.log(`- Overall Status: ${overallProjectStatus}`);
+    console.log(`- Requires Auth: ${authResult.requiresAuth}`);
+    console.log(`- Completion: ${projectData.project.statistics.completionPercentage}%`);
 
     return NextResponse.json(projectData);
   } catch (error) {
-    console.error('Error in project details API:', error);
+    console.error('💥 Error in project details API:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

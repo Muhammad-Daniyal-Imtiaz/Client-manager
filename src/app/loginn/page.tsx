@@ -1,4 +1,3 @@
-// src/app/login/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -170,7 +169,8 @@ export default function LoginPage() {
       } else {
         setError(data.error || 'Authentication failed');
       }
-    } catch (err: any) {
+    } catch (err) {
+      console.error('Authentication error:', err);
       setError('Authentication failed. Please try again.');
     } finally {
       setLoading(false);
@@ -197,7 +197,8 @@ export default function LoginPage() {
         const data = await response.json();
         setError(data.error);
       }
-    } catch (err: any) {
+    } catch (err) {
+      console.error('Signout error:', err);
       setError('Signout failed. Please try again.');
     } finally {
       setLoading(false);

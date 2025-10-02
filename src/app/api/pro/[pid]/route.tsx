@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from './../../sutils/supabaseConfig';
 
-
-
 // Types definition
 export interface User {
   userid: number;
@@ -722,9 +720,9 @@ export async function GET(
     console.log(`- Completion: ${projectData.project.statistics.completionPercentage}%`);
 
     return NextResponse.json(projectData);
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('💥 Error in project details API:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }

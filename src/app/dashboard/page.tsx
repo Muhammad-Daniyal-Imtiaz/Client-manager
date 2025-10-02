@@ -1,3 +1,4 @@
+// src/app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -96,6 +97,7 @@ export default function DashboardPage() {
         setError(data.error || 'Sign out failed');
       }
     } catch (err) {
+      console.error('Signout error:', err);
       setError('Sign out failed. Please try again.');
     } finally {
       setSigningOut(false);

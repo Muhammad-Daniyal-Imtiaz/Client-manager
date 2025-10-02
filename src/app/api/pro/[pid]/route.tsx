@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from './../../sutils/supabaseConfig';
 
 
+
 // Types definition
 export interface User {
   userid: number;
@@ -234,7 +235,7 @@ async function authenticateProjectAccess(
       
       const { data: project, error } = await supabase
         .from('projects')
-        .select('projectid, projectname')
+        .select('*')
         .eq('projectid', projectId)
         .single();
 
@@ -354,6 +355,37 @@ async function fetchUserData(userId: number): Promise<User | null> {
   }
 }
 
+// Helper to convert DatabaseTask to Task with assignments
+function convertToTask(databaseTask: DatabaseTask, assignments: TaskAssignment[]): Task {
+  return {
+    taskid: databaseTask.taskid,
+    taskdescription: databaseTask.taskdescription,
+    status: databaseTask.status,
+    duedate: databaseTask.duedate,
+    createdat: databaseTask.createdat,
+    taskassignments: assignments
+  };
+}
+
+// Helper to convert database phase to Phase with proper tasks
+function convertToPhase(
+  databasePhase: any, 
+  allTasks: Map<number, Task[]>
+): Phase {
+  const phaseTasks = allTasks.get(databasePhase.phaseid) || [];
+  
+  return {
+    phaseid: databasePhase.phaseid,
+    projectid: databasePhase.projectid,
+    templateid: databasePhase.templateid,
+    phasename: databasePhase.phasename,
+    phaseorder: databasePhase.phaseorder,
+    status: databasePhase.status,
+    createdat: databasePhase.createdat,
+    tasks: phaseTasks
+  };
+}
+
 interface ContextParams {
   pid: string;
 }
@@ -467,7 +499,7 @@ export async function GET(
     }
 
     // Fetch all phases
-    const allPhases = await fetchWithErrorHandling<Phase[]>(
+    const allPhasesData = await fetchWithErrorHandling<any[]>(
       supabase
         .from('phases')
         .select(`
@@ -484,11 +516,13 @@ export async function GET(
       'phases'
     );
 
-    // Fetch tasks for all phases
-    let allTasks: DatabaseTask[] = [];
-    if (allPhases && Array.isArray(allPhases)) {
-      for (const phase of allPhases) {
-        const phaseTasks = await fetchWithErrorHandling<DatabaseTask[]>(
+    // Create a map to store tasks by phase ID
+    const tasksByPhaseId = new Map<number, Task[]>();
+
+    // Fetch tasks for all phases and process them with assignments
+    if (allPhasesData && Array.isArray(allPhasesData)) {
+      for (const phase of allPhasesData) {
+        const phaseTasksData = await fetchWithErrorHandling<DatabaseTask[]>(
           supabase
             .from('tasks')
             .select(`
@@ -503,10 +537,12 @@ export async function GET(
           `tasks for phase ${phase.phaseid}`
         );
 
-        if (phaseTasks) {
-          // Fetch task assignments for each task
-          for (const task of phaseTasks) {
-            const taskAssignments = await fetchWithErrorHandling<DatabaseTaskAssignment[]>(
+        if (phaseTasksData) {
+          const processedTasks: Task[] = [];
+          
+          for (const taskData of phaseTasksData) {
+            // Fetch task assignments for each task
+            const taskAssignmentsData = await fetchWithErrorHandling<DatabaseTaskAssignment[]>(
               supabase
                 .from('taskassignments')
                 .select(`
@@ -516,28 +552,39 @@ export async function GET(
                   assignedat,
                   completedat
                 `)
-                .eq('taskid', task.taskid),
-              `assignments for task ${task.taskid}`
+                .eq('taskid', taskData.taskid),
+              `assignments for task ${taskData.taskid}`
             );
 
             // Process assignments with user data
             const processedAssignments: TaskAssignment[] = [];
-            if (taskAssignments && Array.isArray(taskAssignments)) {
-              for (const assignment of taskAssignments) {
+            if (taskAssignmentsData && Array.isArray(taskAssignmentsData)) {
+              for (const assignment of taskAssignmentsData) {
                 const userData = await fetchUserData(assignment.userid);
                 processedAssignments.push({
-                  ...assignment,
+                  taskassignmentid: assignment.taskassignmentid,
+                  assignedat: assignment.assignedat,
+                  completedat: assignment.completedat,
+                  userid: assignment.userid,
                   users: userData || undefined
                 });
               }
             }
 
-            (task as any).taskassignments = processedAssignments;
+            // Convert DatabaseTask to Task with assignments
+            const processedTask: Task = convertToTask(taskData, processedAssignments);
+            processedTasks.push(processedTask);
           }
-          allTasks = [...allTasks, ...phaseTasks];
+          
+          tasksByPhaseId.set(phase.phaseid, processedTasks);
         }
       }
     }
+
+    // Convert database phases to proper Phase objects
+    const allPhases: Phase[] = (allPhasesData || []).map(phaseData => 
+      convertToPhase(phaseData, tasksByPhaseId)
+    );
 
     // Process templates with their template phases and actual project phases
     const processedTemplates: Template[] = [];
@@ -587,16 +634,8 @@ export async function GET(
           }
 
           // Get actual project phases for this template
-          const templateProjectPhases: Phase[] = (allPhases || [])
-            .filter((phase: Phase) => phase.templateid === pt.templateid)
-            .map((phase: Phase) => {
-              const phaseTasks = allTasks.filter((task: DatabaseTask) => task.phaseid === phase.phaseid);
-              
-              return {
-                ...phase,
-                tasks: phaseTasks || []
-              };
-            });
+          const templateProjectPhases: Phase[] = allPhases
+            .filter((phase: Phase) => phase.templateid === pt.templateid);
 
           // Group template tasks by phase
           const templatePhasesWithTasks = (templatePhases || []).map((phase: TemplatePhase) => ({
@@ -617,22 +656,21 @@ export async function GET(
 
     // Calculate statistics
     const allProjectPhases = processedTemplates.flatMap(template => template.phases);
-    const allProjectTasks = allProjectPhases.flatMap(phase => (phase as any).tasks || []);
+    const allProjectTasks = allProjectPhases.flatMap(phase => phase.tasks);
 
     const totalPhases = allProjectPhases.length;
     const completedPhases = allProjectPhases.filter(phase => phase.status === 'Completed').length;
     const totalTasks = allProjectTasks.length;
-    const completedTasks = allProjectTasks.filter((task: DatabaseTask) => task.status === 'Completed').length;
-    const overdueTasks = allProjectTasks.filter((task: DatabaseTask) => 
+    const completedTasks = allProjectTasks.filter(task => task.status === 'Completed').length;
+    const overdueTasks = allProjectTasks.filter(task => 
       task.duedate && new Date(task.duedate) < new Date() && task.status !== 'Completed'
     ).length;
 
-    const totalAssignmentsCount = allProjectTasks.reduce((total: number, task: any) => {
-      return total + (task.taskassignments ? task.taskassignments.length : 0);
+    const totalAssignmentsCount = allProjectTasks.reduce((total: number, task: Task) => {
+      return total + task.taskassignments.length;
     }, 0);
     
-    const completedAssignmentsCount = allProjectTasks.reduce((total: number, task: any) => {
-      if (!task.taskassignments) return total;
+    const completedAssignmentsCount = allProjectTasks.reduce((total: number, task: Task) => {
       return total + task.taskassignments.filter((assignment: TaskAssignment) => assignment.completedat !== null).length;
     }, 0);
 

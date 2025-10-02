@@ -280,7 +280,7 @@ const ProgressDisplay = ({
   value: number; 
   label: string; 
   sublabel?: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
 }) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
@@ -848,7 +848,6 @@ export default function VClientPage(): JSX.Element {
                   <Users className="h-4 w-4" />
                   Task-Based Progress
                 </div>
-
               </div>
             </CardContent>
           </Card>

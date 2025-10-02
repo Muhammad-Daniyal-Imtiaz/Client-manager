@@ -163,6 +163,22 @@ interface DatabaseTaskAssignment {
   completedat: string | null;
 }
 
+interface DatabasePhase {
+  phaseid: number;
+  projectid: number;
+  templateid: number | null;
+  phasename: string;
+  phaseorder: number;
+  status: string;
+  createdat: string;
+}
+
+// Supabase response types
+interface SupabaseResponse<T> {
+  data: T | null;
+  error: any;
+}
+
 // Helper functions
 function calculateProjectStatus(phases: Phase[]): string {
   if (!phases || phases.length === 0) return 'Not Started';
@@ -313,9 +329,9 @@ async function authenticateProjectAccess(
   }
 }
 
-// Fixed safe data fetcher
+// Fixed safe data fetcher with proper typing - simplified approach
 async function fetchWithErrorHandling<T>(
-  query: any,
+  query: any, // Use any here and handle the execution internally
   entityName: string
 ): Promise<T | null> {
   try {
@@ -367,7 +383,7 @@ function convertToTask(databaseTask: DatabaseTask, assignments: TaskAssignment[]
 
 // Helper to convert database phase to Phase with proper tasks
 function convertToPhase(
-  databasePhase: any, 
+  databasePhase: DatabasePhase, 
   allTasks: Map<number, Task[]>
 ): Phase {
   const phaseTasks = allTasks.get(databasePhase.phaseid) || [];
@@ -497,7 +513,7 @@ export async function GET(
     }
 
     // Fetch all phases
-    const allPhasesData = await fetchWithErrorHandling<any[]>(
+    const allPhasesData = await fetchWithErrorHandling<DatabasePhase[]>(
       supabase
         .from('phases')
         .select(`

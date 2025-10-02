@@ -173,10 +173,30 @@ interface DatabasePhase {
   createdat: string;
 }
 
-// Supabase response types
-interface SupabaseResponse<T> {
-  data: T | null;
-  error: any;
+interface DatabaseTemplatePhase {
+  templatephaseid: number;
+  templateid: number;
+  phasename: string;
+  phaseorder: number;
+  createdat: string;
+}
+
+interface DatabaseProjectTemplate {
+  projecttemplateid: number;
+  templateid: number;
+  isactive: boolean;
+  addedat: string;
+  templates: {
+    templateid: number;
+    templatename: string;
+    category: string;
+    description: string;
+  } | {
+    templateid: number;
+    templatename: string;
+    category: string;
+    description: string;
+  }[];
 }
 
 // Helper functions
@@ -214,7 +234,7 @@ async function fetchProjectData(projectId: string): Promise<DatabaseProject | nu
       ...project,
       status: project.status || 'Active',
       updatedat: project.updatedat || project.createdat || new Date().toISOString()
-    };
+    } as DatabaseProject;
   } catch (error) {
     console.error('💥 Error fetching project data:', error);
     throw error;
@@ -258,7 +278,7 @@ async function authenticateProjectAccess(
         return { authorized: false, requiresAuth: false, error: 'Project not found' };
       }
       
-      return { authorized: true, requiresAuth: true, project };
+      return { authorized: true, requiresAuth: true, project: project as DatabaseProject };
     }
     
     const { data: project, error } = await supabase
@@ -285,7 +305,7 @@ async function authenticateProjectAccess(
 
     if (!hasPassword && !hasToken) {
       console.log('✅ No auth required - allowing access');
-      return { authorized: true, requiresAuth: false, project };
+      return { authorized: true, requiresAuth: false, project: project as DatabaseProject };
     }
 
     if ((hasPassword || hasToken) && (!password && !token)) {
@@ -310,7 +330,7 @@ async function authenticateProjectAccess(
 
     if (passwordValid && tokenValid) {
       console.log('✅ Authentication successful');
-      return { authorized: true, requiresAuth: true, project };
+      return { authorized: true, requiresAuth: true, project: project as DatabaseProject };
     } else {
       console.log('❌ Authentication failed:', { passwordValid, tokenValid });
       return { 
@@ -329,25 +349,6 @@ async function authenticateProjectAccess(
   }
 }
 
-// Fixed safe data fetcher with proper typing - simplified approach
-async function fetchWithErrorHandling<T>(
-  query: any, // Use any here and handle the execution internally
-  entityName: string
-): Promise<T | null> {
-  try {
-    const { data, error } = await query;
-    if (error) {
-      console.error(`❌ ${entityName} error:`, error);
-      return null;
-    }
-    console.log(`✅ Found ${Array.isArray(data) ? data.length : data ? 1 : 0} ${entityName}`);
-    return data;
-  } catch (error) {
-    console.error(`💥 ${entityName} fetch error:`, error);
-    return null;
-  }
-}
-
 // Helper to fetch user data by ID
 async function fetchUserData(userId: number): Promise<User | null> {
   try {
@@ -362,7 +363,7 @@ async function fetchUserData(userId: number): Promise<User | null> {
       return null;
     }
 
-    return data;
+    return data as User;
   } catch (error) {
     console.error(`💥 User fetch error for ID ${userId}:`, error);
     return null;
@@ -401,15 +402,16 @@ function convertToPhase(
 }
 
 interface ContextParams {
-  pid: string;
+  params: Promise<{ pid: string }>;
 }
 
 export async function GET(
   request: NextRequest,
-  context: { params: ContextParams }
+  context: ContextParams
 ): Promise<NextResponse> {
   try {
-    const { pid } = context.params;
+    const params = await context.params;
+    const { pid } = params;
     const projectId = pid;
 
     if (!projectId) {
@@ -462,39 +464,43 @@ export async function GET(
     console.log(`📋 Project found: ${project.projectname}`);
 
     // Fetch project templates
-    const projectTemplates = await fetchWithErrorHandling<ProjectTemplate[]>(
-      supabase
-        .from('projecttemplates')
-        .select(`
-          projecttemplateid,
+    const { data: projectTemplatesData, error: templatesError } = await supabase
+      .from('projecttemplates')
+      .select(`
+        projecttemplateid,
+        templateid,
+        isactive,
+        addedat,
+        templates (
           templateid,
-          isactive,
-          addedat,
-          templates (
-            templateid,
-            templatename,
-            category,
-            description
-          )
-        `)
-        .eq('projectid', projectId)
-        .eq('isactive', true),
-      'templates'
-    );
+          templatename,
+          category,
+          description
+        )
+      `)
+      .eq('projectid', projectId)
+      .eq('isactive', true);
+
+    if (templatesError) {
+      console.error('❌ Templates fetch error:', templatesError);
+    }
+
+    const projectTemplates = projectTemplatesData as DatabaseProjectTemplate[] | null;
 
     // Fetch team members
-    const teamMembersData = await fetchWithErrorHandling<TeamMember[]>(
-      supabase
-        .from('projectteam')
-        .select(`
-          projectteamid,
-          role,
-          addedat,
-          userid
-        `)
-        .eq('projectid', projectId),
-      'team members'
-    );
+    const { data: teamMembersData, error: teamError } = await supabase
+      .from('projectteam')
+      .select(`
+        projectteamid,
+        role,
+        addedat,
+        userid
+      `)
+      .eq('projectid', projectId);
+
+    if (teamError) {
+      console.error('❌ Team members fetch error:', teamError);
+    }
 
     // Process team members with user data
     const processedTeam: TeamMember[] = [];
@@ -513,67 +519,77 @@ export async function GET(
     }
 
     // Fetch all phases
-    const allPhasesData = await fetchWithErrorHandling<DatabasePhase[]>(
-      supabase
-        .from('phases')
-        .select(`
-          phaseid,
-          projectid,
-          templateid,
-          phasename,
-          phaseorder,
-          status,
-          createdat
-        `)
-        .eq('projectid', projectId)
-        .order('phaseorder', { ascending: true }),
-      'phases'
-    );
+    const { data: allPhasesData, error: phasesError } = await supabase
+      .from('phases')
+      .select(`
+        phaseid,
+        projectid,
+        templateid,
+        phasename,
+        phaseorder,
+        status,
+        createdat
+      `)
+      .eq('projectid', projectId)
+      .order('phaseorder', { ascending: true });
+
+    if (phasesError) {
+      console.error('❌ Phases fetch error:', phasesError);
+    }
+
+    const allPhasesTyped = allPhasesData as DatabasePhase[] | null;
 
     // Create a map to store tasks by phase ID
     const tasksByPhaseId = new Map<number, Task[]>();
 
     // Fetch tasks for all phases and process them with assignments
-    if (allPhasesData && Array.isArray(allPhasesData)) {
-      for (const phase of allPhasesData) {
-        const phaseTasksData = await fetchWithErrorHandling<DatabaseTask[]>(
-          supabase
-            .from('tasks')
-            .select(`
-              taskid,
-              phaseid,
-              taskdescription,
-              status,
-              duedate,
-              createdat
-            `)
-            .eq('phaseid', phase.phaseid),
-          `tasks for phase ${phase.phaseid}`
-        );
+    if (allPhasesTyped && Array.isArray(allPhasesTyped)) {
+      for (const phase of allPhasesTyped) {
+        const { data: phaseTasksData, error: tasksError } = await supabase
+          .from('tasks')
+          .select(`
+            taskid,
+            phaseid,
+            taskdescription,
+            status,
+            duedate,
+            createdat
+          `)
+          .eq('phaseid', phase.phaseid);
 
-        if (phaseTasksData) {
+        if (tasksError) {
+          console.error(`❌ Tasks fetch error for phase ${phase.phaseid}:`, tasksError);
+          continue;
+        }
+
+        const typedTasks = phaseTasksData as DatabaseTask[] | null;
+
+        if (typedTasks) {
           const processedTasks: Task[] = [];
           
-          for (const taskData of phaseTasksData) {
+          for (const taskData of typedTasks) {
             // Fetch task assignments for each task
-            const taskAssignmentsData = await fetchWithErrorHandling<DatabaseTaskAssignment[]>(
-              supabase
-                .from('taskassignments')
-                .select(`
-                  taskassignmentid,
-                  taskid,
-                  userid,
-                  assignedat,
-                  completedat
-                `)
-                .eq('taskid', taskData.taskid),
-              `assignments for task ${taskData.taskid}`
-            );
+            const { data: taskAssignmentsData, error: assignmentsError } = await supabase
+              .from('taskassignments')
+              .select(`
+                taskassignmentid,
+                taskid,
+                userid,
+                assignedat,
+                completedat
+              `)
+              .eq('taskid', taskData.taskid);
+
+            if (assignmentsError) {
+              console.error(`❌ Assignments fetch error for task ${taskData.taskid}:`, assignmentsError);
+            }
+
+            const typedAssignments = taskAssignmentsData as DatabaseTaskAssignment[] | null;
 
             // Process assignments with user data
             const processedAssignments: TaskAssignment[] = [];
-            if (taskAssignmentsData && Array.isArray(taskAssignmentsData)) {
-              for (const assignment of taskAssignmentsData) {
+            if (typedAssignments && Array.isArray(typedAssignments)) {
+              for (const assignment of typedAssignments) {
                 const userData = await fetchUserData(assignment.userid);
                 processedAssignments.push({
                   taskassignmentid: assignment.taskassignmentid,
@@ -596,7 +612,7 @@ export async function GET(
     }
 
     // Convert database phases to proper Phase objects
-    const allPhases: Phase[] = (allPhasesData || []).map(phaseData => 
+    const allPhases: Phase[] = (allPhasesTyped || []).map(phaseData => 
       convertToPhase(phaseData, tasksByPhaseId)
     );
 
@@ -608,41 +624,51 @@ export async function GET(
       
       for (const pt of projectTemplates) {
         if (isProjectTemplate(pt) && pt.templates) {
-          // Fetch template phases and tasks
-          const templatePhases = await fetchWithErrorHandling<TemplatePhase[]>(
-            supabase
-              .from('templatephases')
-              .select(`
-                templatephaseid,
-                templateid,
-                phasename,
-                phaseorder,
-                createdat
-              `)
-              .eq('templateid', pt.templateid)
-              .order('phaseorder', { ascending: true }),
-            `template phases for template ${pt.templateid}`
-          );
+          const templateData = Array.isArray(pt.templates) ? pt.templates[0] : pt.templates;
+          
+          if (!templateData) continue;
+
+          // Fetch template phases
+          const { data: templatePhasesData, error: templatePhasesError } = await supabase
+            .from('templatephases')
+            .select(`
+              templatephaseid,
+              templateid,
+              phasename,
+              phaseorder,
+              createdat
+            `)
+            .eq('templateid', pt.templateid)
+            .order('phaseorder', { ascending: true });
+
+          if (templatePhasesError) {
+            console.error(`❌ Template phases fetch error for template ${pt.templateid}:`, templatePhasesError);
+            continue;
+          }
+
+          const typedTemplatePhases = templatePhasesData as DatabaseTemplatePhase[] | null;
 
           // Fetch template tasks
           let templateTasksData: TemplateTask[] = [];
-          if (templatePhases && Array.isArray(templatePhases)) {
-            for (const phase of templatePhases) {
-              const tasks = await fetchWithErrorHandling<TemplateTask[]>(
-                supabase
-                  .from('templatetasks')
-                  .select(`
-                    templatetaskid,
-                    templatephaseid,
-                    taskdescription,
-                    createdat
-                  `)
-                  .eq('templatephaseid', phase.templatephaseid),
-                `template tasks for phase ${phase.templatephaseid}`
-              );
+          if (typedTemplatePhases && Array.isArray(typedTemplatePhases)) {
+            for (const phase of typedTemplatePhases) {
+              const { data: tasks, error: tasksError } = await supabase
+                .from('templatetasks')
+                .select(`
+                  templatetaskid,
+                  templatephaseid,
+                  taskdescription,
+                  createdat
+                `)
+                .eq('templatephaseid', phase.templatephaseid);
+
+              if (tasksError) {
+                console.error(`❌ Template tasks fetch error for phase ${phase.templatephaseid}:`, tasksError);
+                continue;
+              }
               
               if (tasks) {
-                templateTasksData = [...templateTasksData, ...tasks];
+                templateTasksData = [...templateTasksData, ...(tasks as TemplateTask[])];
               }
             }
           }
@@ -652,13 +678,13 @@ export async function GET(
             .filter((phase: Phase) => phase.templateid === pt.templateid);
 
           // Group template tasks by phase
-          const templatePhasesWithTasks = (templatePhases || []).map((phase: TemplatePhase) => ({
+          const templatePhasesWithTasks: TemplatePhase[] = (typedTemplatePhases || []).map((phase: DatabaseTemplatePhase) => ({
             ...phase,
             templatetasks: templateTasksData.filter((task: TemplateTask) => task.templatephaseid === phase.templatephaseid)
           }));
 
           processedTemplates.push({
-            ...pt.templates,
+            ...templateData,
             templatephases: templatePhasesWithTasks,
             phases: templateProjectPhases
           });

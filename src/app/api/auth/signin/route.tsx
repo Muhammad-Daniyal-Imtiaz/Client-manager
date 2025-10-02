@@ -1,4 +1,3 @@
-// src/app/api/auth/signin/route.ts
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -79,10 +78,11 @@ export async function POST(request: Request) {
         updated_at: authData.user.updated_at
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signin error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Signin failed'
     return NextResponse.json(
-      { error: error.message || 'Signin failed' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

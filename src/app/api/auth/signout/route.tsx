@@ -1,4 +1,3 @@
-// src/app/api/auth/signout/route.ts
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -13,10 +12,11 @@ export async function POST() {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signout error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Signout failed'
     return NextResponse.json(
-      { error: error.message || 'Signout failed' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

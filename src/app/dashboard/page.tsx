@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -351,7 +350,10 @@ export default function DashboardPage() {
                   <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                 </button>
 
-                <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group">
+                <button 
+                  onClick={() => handleNavigation('/support')}
+                  className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="bg-green-100 p-2 rounded-lg group-hover:bg-green-200 transition-colors">
                       <HelpCircle className="h-5 w-5 text-green-600" />
@@ -364,7 +366,10 @@ export default function DashboardPage() {
                   <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
                 </button>
 
-                <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group">
+                <button 
+                  onClick={() => handleNavigation('/settings')}
+                  className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="bg-purple-100 p-2 rounded-lg group-hover:bg-purple-200 transition-colors">
                       <Settings className="h-5 w-5 text-purple-600" />
@@ -377,7 +382,10 @@ export default function DashboardPage() {
                   <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
                 </button>
 
-                <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all duration-200 group">
+                <button 
+                  onClick={() => handleNavigation('/documents')}
+                  className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all duration-200 group"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="bg-orange-100 p-2 rounded-lg group-hover:bg-orange-200 transition-colors">
                       <FileText className="h-5 w-5 text-orange-600" />

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from './../../sutils/supabaseConfig';
 
+
 // Types definition
 export interface User {
   userid: number;
@@ -114,6 +115,55 @@ export interface ApiResponse {
   authError?: string;
 }
 
+// Type guards
+function isProjectTemplate(data: unknown): data is ProjectTemplate {
+  return !!(
+    data && 
+    typeof data === 'object' && 
+    'templates' in data && 
+    typeof (data as ProjectTemplate).templates === 'object'
+  );
+}
+
+function isTeamMember(data: unknown): data is TeamMember {
+  return !!(
+    data && 
+    typeof data === 'object' && 
+    'userid' in data && 
+    typeof (data as TeamMember).userid === 'number'
+  );
+}
+
+interface DatabaseProject {
+  projectid: number;
+  projectname: string;
+  description: string | null;
+  projecttype: string;
+  status: string;
+  createdbyuserid: number;
+  createdat: string;
+  updatedat: string;
+  project_password?: string | null;
+  project_token?: string | null;
+}
+
+interface DatabaseTask {
+  taskid: number;
+  phaseid: number;
+  taskdescription: string;
+  status: string;
+  duedate: string | null;
+  createdat: string;
+}
+
+interface DatabaseTaskAssignment {
+  taskassignmentid: number;
+  taskid: number;
+  userid: number;
+  assignedat: string;
+  completedat: string | null;
+}
+
 // Helper functions
 function calculateProjectStatus(phases: Phase[]): string {
   if (!phases || phases.length === 0) return 'Not Started';
@@ -127,16 +177,8 @@ function calculateProjectStatus(phases: Phase[]): string {
   return 'Not Started';
 }
 
-function isProjectTemplate(data: any): data is ProjectTemplate {
-  return data && data.templates && typeof data.templates === 'object';
-}
-
-function isTeamMember(data: any): data is TeamMember {
-  return data && data.userid !== undefined;
-}
-
 // Safe project data fetcher
-async function fetchProjectData(projectId: string): Promise<any> {
+async function fetchProjectData(projectId: string): Promise<DatabaseProject | null> {
   try {
     console.log(`📋 Fetching project data for ID: ${projectId}`);
     
@@ -165,11 +207,18 @@ async function fetchProjectData(projectId: string): Promise<any> {
 }
 
 // Authentication helper
+interface AuthResult {
+  authorized: boolean;
+  requiresAuth: boolean;
+  error?: string;
+  project?: DatabaseProject;
+}
+
 async function authenticateProjectAccess(
   projectId: string, 
   password?: string, 
   token?: string
-): Promise<{ authorized: boolean; requiresAuth: boolean; error?: string; project?: any }> {
+): Promise<AuthResult> {
   
   try {
     console.log(`🔐 Authenticating project ${projectId}`, { 
@@ -367,7 +416,7 @@ export async function GET(
     console.log(`📋 Project found: ${project.projectname}`);
 
     // Fetch project templates
-    const projectTemplates = await fetchWithErrorHandling<any[]>(
+    const projectTemplates = await fetchWithErrorHandling<ProjectTemplate[]>(
       supabase
         .from('projecttemplates')
         .select(`
@@ -388,7 +437,7 @@ export async function GET(
     );
 
     // Fetch team members
-    const teamMembersData = await fetchWithErrorHandling<any[]>(
+    const teamMembersData = await fetchWithErrorHandling<TeamMember[]>(
       supabase
         .from('projectteam')
         .select(`
@@ -418,7 +467,7 @@ export async function GET(
     }
 
     // Fetch all phases
-    const allPhases = await fetchWithErrorHandling<any[]>(
+    const allPhases = await fetchWithErrorHandling<Phase[]>(
       supabase
         .from('phases')
         .select(`
@@ -436,10 +485,10 @@ export async function GET(
     );
 
     // Fetch tasks for all phases
-    let allTasks: any[] = [];
+    let allTasks: DatabaseTask[] = [];
     if (allPhases && Array.isArray(allPhases)) {
       for (const phase of allPhases) {
-        const phaseTasks = await fetchWithErrorHandling<any[]>(
+        const phaseTasks = await fetchWithErrorHandling<DatabaseTask[]>(
           supabase
             .from('tasks')
             .select(`
@@ -457,7 +506,7 @@ export async function GET(
         if (phaseTasks) {
           // Fetch task assignments for each task
           for (const task of phaseTasks) {
-            const taskAssignments = await fetchWithErrorHandling<any[]>(
+            const taskAssignments = await fetchWithErrorHandling<DatabaseTaskAssignment[]>(
               supabase
                 .from('taskassignments')
                 .select(`
@@ -483,7 +532,7 @@ export async function GET(
               }
             }
 
-            task.taskassignments = processedAssignments;
+            (task as any).taskassignments = processedAssignments;
           }
           allTasks = [...allTasks, ...phaseTasks];
         }
@@ -499,7 +548,7 @@ export async function GET(
       for (const pt of projectTemplates) {
         if (isProjectTemplate(pt) && pt.templates) {
           // Fetch template phases and tasks
-          const templatePhases = await fetchWithErrorHandling<any[]>(
+          const templatePhases = await fetchWithErrorHandling<TemplatePhase[]>(
             supabase
               .from('templatephases')
               .select(`
@@ -515,10 +564,10 @@ export async function GET(
           );
 
           // Fetch template tasks
-          let templateTasksData: any[] = [];
+          let templateTasksData: TemplateTask[] = [];
           if (templatePhases && Array.isArray(templatePhases)) {
             for (const phase of templatePhases) {
-              const tasks = await fetchWithErrorHandling<any[]>(
+              const tasks = await fetchWithErrorHandling<TemplateTask[]>(
                 supabase
                   .from('templatetasks')
                   .select(`
@@ -539,9 +588,9 @@ export async function GET(
 
           // Get actual project phases for this template
           const templateProjectPhases: Phase[] = (allPhases || [])
-            .filter((phase: any) => phase.templateid === pt.templateid)
-            .map((phase: any) => {
-              const phaseTasks = allTasks.filter((task: any) => task.phaseid === phase.phaseid);
+            .filter((phase: Phase) => phase.templateid === pt.templateid)
+            .map((phase: Phase) => {
+              const phaseTasks = allTasks.filter((task: DatabaseTask) => task.phaseid === phase.phaseid);
               
               return {
                 ...phase,
@@ -550,9 +599,9 @@ export async function GET(
             });
 
           // Group template tasks by phase
-          const templatePhasesWithTasks = (templatePhases || []).map((phase: any) => ({
+          const templatePhasesWithTasks = (templatePhases || []).map((phase: TemplatePhase) => ({
             ...phase,
-            templatetasks: templateTasksData.filter((task: any) => task.templatephaseid === phase.templatephaseid)
+            templatetasks: templateTasksData.filter((task: TemplateTask) => task.templatephaseid === phase.templatephaseid)
           }));
 
           processedTemplates.push({
@@ -568,23 +617,23 @@ export async function GET(
 
     // Calculate statistics
     const allProjectPhases = processedTemplates.flatMap(template => template.phases);
-    const allProjectTasks = allProjectPhases.flatMap(phase => phase.tasks || []);
+    const allProjectTasks = allProjectPhases.flatMap(phase => (phase as any).tasks || []);
 
     const totalPhases = allProjectPhases.length;
     const completedPhases = allProjectPhases.filter(phase => phase.status === 'Completed').length;
     const totalTasks = allProjectTasks.length;
-    const completedTasks = allProjectTasks.filter(task => task.status === 'Completed').length;
-    const overdueTasks = allProjectTasks.filter(task => 
+    const completedTasks = allProjectTasks.filter((task: DatabaseTask) => task.status === 'Completed').length;
+    const overdueTasks = allProjectTasks.filter((task: DatabaseTask) => 
       task.duedate && new Date(task.duedate) < new Date() && task.status !== 'Completed'
     ).length;
 
-    const totalAssignmentsCount = allProjectTasks.reduce((total, task) => {
+    const totalAssignmentsCount = allProjectTasks.reduce((total: number, task: any) => {
       return total + (task.taskassignments ? task.taskassignments.length : 0);
     }, 0);
     
-    const completedAssignmentsCount = allProjectTasks.reduce((total, task) => {
+    const completedAssignmentsCount = allProjectTasks.reduce((total: number, task: any) => {
       if (!task.taskassignments) return total;
-      return total + task.taskassignments.filter(assignment => assignment.completedat !== null).length;
+      return total + task.taskassignments.filter((assignment: TaskAssignment) => assignment.completedat !== null).length;
     }, 0);
 
     const totalTemplatePhases = processedTemplates.reduce((total, template) => {
@@ -635,10 +684,11 @@ export async function GET(
     console.log(`- Completion: ${projectData.project.statistics.completionPercentage}%`);
 
     return NextResponse.json(projectData);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('💥 Error in project details API:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

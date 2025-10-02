@@ -1,4 +1,3 @@
-// src/app/api/auth/signup/route.ts
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -94,10 +93,11 @@ export async function POST(request: Request) {
         role: 'client',
       } : null
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signup error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Signup failed'
     return NextResponse.json(
-      { error: error.message || 'Signup failed' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

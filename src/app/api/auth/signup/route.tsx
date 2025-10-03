@@ -1,3 +1,4 @@
+// src/app/api/auth/signup/route.ts
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -22,11 +23,19 @@ export async function POST(request: Request) {
     const supabase = await createClient()
 
     // First check if user already exists
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: checkError } = await supabase
       .from('clients')
       .select('id')
       .eq('email', email)
       .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing user:', checkError)
+      return NextResponse.json(
+        { error: 'Server error during signup' },
+        { status: 500 }
+      )
+    }
 
     if (existingUser) {
       return NextResponse.json(
@@ -35,6 +44,9 @@ export async function POST(request: Request) {
       )
     }
 
+    // Get the base URL from the request for dynamic redirect
+    const baseUrl = new URL(request.url).origin
+    
     // Sign up the user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -45,18 +57,31 @@ export async function POST(request: Request) {
           company: company,
           phone: phone || null,
         },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
+        emailRedirectTo: `${baseUrl}/dashboard`,
       },
     })
 
     if (authError) {
-      if (authError.message.includes('already registered')) {
+      console.error('Auth signup error:', authError)
+      
+      if (authError.message.includes('already registered') || authError.code === 'user_already_exists') {
         return NextResponse.json(
           { error: 'email_exists' },
           { status: 400 }
         )
       }
-      throw authError
+      
+      if (authError.message.includes('password')) {
+        return NextResponse.json(
+          { error: 'weak_password' },
+          { status: 400 }
+        )
+      }
+      
+      return NextResponse.json(
+        { error: authError.message },
+        { status: 400 }
+      )
     }
 
     if (authData.user) {
@@ -71,19 +96,32 @@ export async function POST(request: Request) {
             company: company,
             phone: phone || null,
             role: 'client',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           },
         ])
 
       if (clientError) {
         console.error('Error creating client record:', clientError)
-        // If client record fails, we should probably delete the auth user
-        // But for now, we'll just log the error
+        // If client record fails, we should handle this gracefully
+        // The auth user exists but client record failed
+        return NextResponse.json(
+          { 
+            success: true,
+            message: 'Account created but there was an issue with profile setup. Please contact support.',
+            client: null
+          },
+          { status: 201 }
+        )
       }
     }
 
+    // Return success response
     return NextResponse.json({ 
       success: true,
-      message: authData.session ? 'Signup successful! Redirecting...' : 'Please check your email for verification',
+      message: authData.session 
+        ? 'Signup successful! Redirecting...' 
+        : 'Please check your email to verify your account before signing in.',
       client: authData.user ? {
         id: authData.user.id,
         email: authData.user.email,
@@ -91,8 +129,11 @@ export async function POST(request: Request) {
         company: company,
         phone: phone || null,
         role: 'client',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       } : null
     })
+    
   } catch (error: unknown) {
     console.error('Signup error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Signup failed'

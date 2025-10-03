@@ -9,9 +9,9 @@ export async function GET(request: Request) {
     const redirectTo = requestUrl.searchParams.get('redirectTo') || '/dashboard'
 
     if (!code) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/login?error=no_code`
-      )
+      const errorUrl = new URL('/login', request.url)
+      errorUrl.searchParams.set('error', 'no_code')
+      return NextResponse.redirect(errorUrl)
     }
 
     const supabase = await createClient()
@@ -20,9 +20,9 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Auth callback error:', error)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/login?error=auth_failed`
-      )
+      const errorUrl = new URL('/login', request.url)
+      errorUrl.searchParams.set('error', 'auth_failed')
+      return NextResponse.redirect(errorUrl)
     }
 
     if (session?.user) {
@@ -49,11 +49,13 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}${redirectTo}`)
+    // Use dynamic URL based on current request
+    const baseUrl = new URL(request.url).origin
+    return NextResponse.redirect(`${baseUrl}${redirectTo}`)
   } catch (error) {
     console.error('Auth callback error:', error)
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/login?error=server_error`
-    )
+    const errorUrl = new URL('/login', request.url)
+    errorUrl.searchParams.set('error', 'server_error')
+    return NextResponse.redirect(errorUrl)
   }
 }

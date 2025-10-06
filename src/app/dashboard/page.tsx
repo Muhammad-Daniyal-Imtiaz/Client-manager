@@ -47,17 +47,18 @@ export default function Dashboard() {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch("/api/auth/session");
+      const response = await fetch('/api/auth/session');
       const data = await response.json();
-
+      
       if (response.ok && data.client) {
         setClient(data.client);
       } else {
-        window.location.href = "/login";
+        // Redirect to login if not authenticated
+        window.location.href = '/login';
       }
     } catch (err) {
-      console.error("Error checking auth status:", err);
-      window.location.href = "/login";
+      console.error('Error checking auth status:', err);
+      window.location.href = '/login';
     } finally {
       setLoading(false);
     }
@@ -65,20 +66,20 @@ export default function Dashboard() {
 
   const handleSignout = async () => {
     try {
-      const response = await fetch("/api/auth/signout", {
-        method: "POST",
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
       });
 
       if (response.ok) {
-        window.location.href = "/login";
+        window.location.href = '/login';
       }
     } catch (err) {
-      console.error("Signout error:", err);
+      console.error('Signout error:', err);
     }
   };
 
   const navigateToVClient = () => {
-    window.location.href = "/vclient";
+    window.location.href = '/vclient';
   };
 
   if (loading) {
@@ -97,10 +98,7 @@ export default function Dashboard() {
       <div className="flex min-h-screen bg-gradient-to-br from-green-100 via-gray-100 to-green-200 items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Not authenticated</p>
-          <Button
-            onClick={() => (window.location.href = "/login")}
-            className="mt-4"
-          >
+          <Button onClick={() => window.location.href = '/login'} className="mt-4">
             Go to Login
           </Button>
         </div>
@@ -117,13 +115,11 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 mb-4">
             <div className="h-12 w-12 rounded-full bg-green-600 flex items-center justify-center">
               <span className="text-white font-semibold text-lg">
-                {client.name?.charAt(0)?.toUpperCase() || "U"}
+                {client.name?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 truncate">
-                {client.name}
-              </p>
+              <p className="font-semibold text-gray-900 truncate">{client.name}</p>
               <p className="text-sm text-gray-500 truncate">{client.email}</p>
             </div>
           </div>
@@ -144,7 +140,7 @@ export default function Dashboard() {
         <div className="p-4 text-xl font-bold text-green-700 text-center border-b border-gray-200">
           My Dashboard
         </div>
-
+        
         <nav className="flex-1">
           {menuItems.map((item) => (
             <motion.div
@@ -162,9 +158,9 @@ export default function Dashboard() {
             </motion.div>
           ))}
         </nav>
-
+        
         <div className="p-6 border-t border-gray-200 space-y-3">
-          <Button
+          <Button 
             onClick={navigateToVClient}
             className="w-full flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
           >
@@ -172,13 +168,13 @@ export default function Dashboard() {
             Go to Clients
             <ArrowRight className="h-4 w-4" />
           </Button>
-
-          <Button
-            variant="outline"
+          
+          <Button 
+            variant="outline" 
             className="w-full flex items-center gap-2"
             onClick={handleSignout}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" /> 
             Logout
           </Button>
         </div>
@@ -191,7 +187,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-semibold">{active}</h1>
             <p className="text-gray-600">
-              Welcome back, {client.name}! Here's what's happening today.
+              Welcome back, {client.name}! Here&apos;s what&apos;s happening today.
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -227,38 +223,28 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">
-                        Full Name
-                      </label>
+                      <label className="text-sm font-medium text-gray-500">Full Name</label>
                       <p className="text-lg font-semibold">{client.name}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">
-                        Email
-                      </label>
+                      <label className="text-sm font-medium text-gray-500">Email</label>
                       <p className="text-lg font-semibold">{client.email}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">
-                        Company
-                      </label>
+                      <label className="text-sm font-medium text-gray-500">Company</label>
                       <p className="text-lg font-semibold">{client.company}</p>
                     </div>
                     {client.phone && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500">
-                          Phone
-                        </label>
+                        <label className="text-sm font-medium text-gray-500">Phone</label>
                         <p className="text-lg font-semibold">{client.phone}</p>
                       </div>
                     )}
                     {client.created_at && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500">
-                          Member Since
-                        </label>
+                        <label className="text-sm font-medium text-gray-500">Member Since</label>
                         <p className="text-lg font-semibold">
                           {new Date(client.created_at).toLocaleDateString()}
                         </p>
@@ -329,9 +315,7 @@ export default function Dashboard() {
                       <FileText className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="font-semibold">
-                        New application submitted
-                      </p>
+                      <p className="font-semibold">New application submitted</p>
                       <p className="text-sm text-gray-500">2 hours ago</p>
                     </div>
                   </div>

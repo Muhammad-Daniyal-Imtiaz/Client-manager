@@ -34,17 +34,14 @@ export default function LeadsFlowHeader() {
               </span>
             </div>
             
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - Updated */}
             <nav className="hidden md:flex space-x-6">
               <a href="/dashboard" className="hover:text-[#d1ebdb] transition-colors font-medium">Dashboard</a>
-              <a href="/Comp" className="hover:text-[#d1ebdb] transition-colors font-medium">Projects</a>
-              <a href="#" className="hover:text-[#d1ebdb] transition-colors font-medium">Analytics</a>
-              <a href="#" className="hover:text-[#d1ebdb] transition-colors font-medium">Team</a>
               <button 
                 onClick={handleVClient}
                 className="hover:text-[#d1ebdb] transition-colors font-medium"
               >
-                VClient
+                View Project Progress
               </button>
             </nav>
             
@@ -57,11 +54,11 @@ export default function LeadsFlowHeader() {
                   Sign In
                 </button>
                 <button 
-                  onClick={handleLoadProjects}
+                  onClick={handleVClient}
                   className="bg-white text-[#305759] px-5 py-2.5 rounded-lg font-medium hover:bg-[#e7f3ef] transition-all duration-300 flex items-center gap-2 shadow-sm"
                 >
                   <Rocket className="w-4 h-4" />
-                  Load Projects
+                  View Project Progress
                 </button>
                 
                 {/* Mobile Menu Button */}
@@ -75,19 +72,16 @@ export default function LeadsFlowHeader() {
             )}
           </div>
           
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation - Updated */}
           {mobileMenuOpen && (
             <div className="md:hidden mt-4 py-4 border-t border-white/20">
               <nav className="flex flex-col space-y-3">
                 <a href="/dash" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Dashboard</a>
-                <a href="/Comp" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Projects</a>
-                <a href="#" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Analytics</a>
-                <a href="#" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Team</a>
                 <button 
                   onClick={handleVClient}
                   className="py-2 px-4 text-left hover:bg-white/10 rounded-lg transition-colors font-medium"
                 >
-                  VClient
+                  View Project Progress
                 </button>
                 <button 
                   onClick={handleSignIn}
@@ -111,11 +105,11 @@ export default function LeadsFlowHeader() {
           </div>
         ) : (
           <>
-            {/* Hero Section with Background Image - Made more visible */}
+            {/* Hero Section with Updated Background Image */}
             <section 
               className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 bg-cover bg-center bg-no-repeat"
               style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80')"
+                backgroundImage: "url('https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')"
               }}
             >
               {/* Reduced opacity overlay to make background more visible */}
@@ -126,13 +120,13 @@ export default function LeadsFlowHeader() {
                   {/* Main heading */}
                   <div className="mb-10 max-w-4xl">
                     <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-balance leading-tight mb-6">
-                      Manage your Projects
+                      Track Project Progress
                     </h1>
                     <h2 className="text-4xl md:text-5xl font-bold mb-8">
-                      With Professional Precision
+                      In Real-Time
                     </h2>
                     <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-10">
-                      LeadsFlow 180 provides all the tools your marketing team needs to plan, execute, and track successful campaigns with enterprise-grade security and scalability.
+                      Monitor your project milestones, track team progress, and stay updated with real-time project status updates and analytics.
                     </p>
                   </div>
 
@@ -142,26 +136,26 @@ export default function LeadsFlowHeader() {
                   {/* CTA Buttons */}
                   <div className="flex flex-col sm:flex-row gap-6 mb-16">
                     <button 
-                      onClick={handleLoadProjects}
+                      onClick={handleVClient}
                       className="bg-[#d1ebdb] text-[#305759] px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white transition-all duration-300 flex items-center gap-3 shadow-md"
                     >
-                      <span>Launch Dashboard</span>
+                      <span>View Project Progress</span>
                       <ArrowRight className="w-5 h-5" />
                     </button>
                     
                     <button 
-                      onClick={handleVClient}
+                      onClick={handleLoadProjects}
                       className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white hover:text-[#305759] transition-all duration-300 flex items-center gap-3"
                     >
                       <Play className="w-5 h-5" />
-                      <span>Go to VClient</span>
+                      <span>Launch Dashboard</span>
                     </button>
                   </div>
 
-                  {/* Project Dashboard Preview */}
+                  {/* Project Progress Preview */}
                   <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 max-w-2xl">
-                    <h3 className="text-2xl font-bold mb-2">Real-time Project Dashboard</h3>
-                    <p className="text-lg">Track all your marketing campaigns in one place</p>
+                    <h3 className="text-2xl font-bold mb-2">Real-time Progress Tracking</h3>
+                    <p className="text-lg">Monitor milestones, deadlines, and team performance in one centralized dashboard</p>
                   </div>
                 </div>
                 
@@ -180,24 +174,24 @@ export default function LeadsFlowHeader() {
               <div className="container mx-auto px-6">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                   <h2 className="text-4xl md:text-5xl font-bold text-[#192524] mb-6">
-                    Everything You Need to <span className="text-[#305759]">Succeed</span>
+                    Track Your Project <span className="text-[#305759]">Progress</span>
                   </h2>
                   <p className="text-xl text-[#192524]">
-                    LeadsFlow 180 provides all the tools your marketing team needs to plan, execute, and track successful campaigns.
+                    Get real-time insights into your project milestones, team performance, and completion status.
                   </p>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8">
                   <div className="bg-white/90 p-8 rounded-2xl border border-[#959D90]/30 hover:shadow-lg transition-all duration-300">
                     <div className="w-16 h-16 bg-[#305759] rounded-2xl flex items-center justify-center mb-6">
-                      <BarChart3 className="w-8 h-8 text-white" />
+                      <TrendingUp className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Advanced Analytics</h3>
+                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Progress Analytics</h3>
                     <p className="text-[#192524] mb-4">
-                      Track project performance with real-time analytics and detailed insights to make data-driven decisions.
+                      Track project completion rates and team performance with real-time progress analytics.
                     </p>
                     <ul className="space-y-2">
-                      {['Real-time dashboards', 'Custom reports', 'Performance metrics', 'ROI tracking'].map((item) => (
+                      {['Milestone tracking', 'Completion metrics', 'Progress reports', 'Timeline updates'].map((item) => (
                         <li key={item} className="flex items-center text-[#192524]">
                           <CheckCircle className="w-5 h-5 text-[#305759] mr-2" />
                           {item}
@@ -210,12 +204,12 @@ export default function LeadsFlowHeader() {
                     <div className="w-16 h-16 bg-[#305759] rounded-2xl flex items-center justify-center mb-6">
                       <Target className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Project Tracking</h3>
+                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Milestone Tracking</h3>
                     <p className="text-[#192524] mb-4">
-                      Monitor all your projects in one place with intuitive dashboards and progress tracking.
+                      Monitor all your project milestones and deadlines with intuitive progress indicators.
                     </p>
                     <ul className="space-y-2">
-                      {['Timeline view', 'Task management', 'Milestone tracking', 'Deadline alerts'].map((item) => (
+                      {['Timeline view', 'Deadline alerts', 'Progress indicators', 'Status updates'].map((item) => (
                         <li key={item} className="flex items-center text-[#192524]">
                           <CheckCircle className="w-5 h-5 text-[#305759] mr-2" />
                           {item}
@@ -228,12 +222,12 @@ export default function LeadsFlowHeader() {
                     <div className="w-16 h-16 bg-[#305759] rounded-2xl flex items-center justify-center mb-6">
                       <Users className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Team Collaboration</h3>
+                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Team Progress</h3>
                     <p className="text-[#192524] mb-4">
-                      Work seamlessly with your team through integrated communication and task management tools.
+                      Track individual and team contributions with detailed progress monitoring and reporting.
                     </p>
                     <ul className="space-y-2">
-                      {['Team chat', 'File sharing', 'Comment threads', 'Role permissions'].map((item) => (
+                      {['Team performance', 'Task completion', 'Progress metrics', 'Contribution tracking'].map((item) => (
                         <li key={item} className="flex items-center text-[#192524]">
                           <CheckCircle className="w-5 h-5 text-[#305759] mr-2" />
                           {item}
@@ -254,50 +248,50 @@ export default function LeadsFlowHeader() {
               
               <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center text-white mb-16">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6">Why Marketers Love LeadsFlow 180</h2>
+                  <h2 className="text-4xl md:text-5xl font-bold mb-6">Real-Time Project Insights</h2>
                   <p className="text-xl text-white/90 max-w-3xl mx-auto">
-                    Join thousands of marketing teams that have transformed their workflow and achieved better results.
+                    Get instant visibility into your project status and team performance with our advanced progress tracking.
                   </p>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
-                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">500+</div>
-                    <div className="text-white/90">Projects Completed</div>
-                  </div>
-                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
-                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">98%</div>
-                    <div className="text-white/90">Client Satisfaction</div>
-                  </div>
-                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
-                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">120+</div>
-                    <div className="text-white/90">Active Users</div>
+                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">95%</div>
+                    <div className="text-white/90">Projects On Track</div>
                   </div>
                   <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
                     <div className="text-4xl md:text-5xl font-bold text-white mb-2">24/7</div>
-                    <div className="text-white/90">Support Available</div>
+                    <div className="text-white/90">Progress Updates</div>
+                  </div>
+                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
+                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">99%</div>
+                    <div className="text-white/90">Deadline Accuracy</div>
+                  </div>
+                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
+                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">500+</div>
+                    <div className="text-white/90">Milestones Tracked</div>
                   </div>
                 </div>
                 
                 <div className="mt-16 bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="text-center md:text-left">
-                      <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
-                      <p className="text-white/90">Experience the power of LeadsFlow 180 with our 14-day free trial.</p>
+                      <h3 className="text-2xl font-bold text-white mb-4">Ready to track your progress?</h3>
+                      <p className="text-white/90">Get real-time insights into your project milestones and team performance.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4">
                       <button 
-                        onClick={handleLoadProjects}
+                        onClick={handleVClient}
                         className="bg-white text-[#305759] px-8 py-4 rounded-xl font-semibold hover:bg-[#e7f3ef] transition-all duration-300 flex items-center gap-3 whitespace-nowrap shrink-0 shadow-md"
                       >
-                        <Rocket className="w-5 h-5" />
-                        Start Free Trial
+                        <TrendingUp className="w-5 h-5" />
+                        View Project Progress
                       </button>
                       <button 
-                        onClick={handleVClient}
+                        onClick={handleLoadProjects}
                         className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-[#305759] transition-all duration-300 flex items-center gap-3"
                       >
-                        Go to VClient
+                        Launch Dashboard
                       </button>
                     </div>
                   </div>
@@ -317,7 +311,7 @@ export default function LeadsFlowHeader() {
               <h3 className="text-2xl font-bold">LeadsFlow 180</h3>
             </div>
             <p className="text-white/80 max-w-2xl mx-auto mb-6">
-              The leading project management solution for marketing teams looking to maximize efficiency and results.
+              Advanced project progress tracking and milestone management for teams that need real-time visibility.
             </p>
             <p className="text-white/60 text-sm">
               © {new Date().getFullYear()} LeadsFlow 180. All rights reserved.

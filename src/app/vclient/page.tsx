@@ -49,7 +49,8 @@ import {
   Lightbulb,
   Globe,
   Key,
-  Lock
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 
 // Import types from API
@@ -151,6 +152,17 @@ interface ApiResponse {
   project: Project;
   requiresAuth?: boolean;
   authError?: string;
+}
+
+interface Client {
+  id: string;
+  email: string;
+  name: string;
+  company: string;
+  phone?: string;
+  role?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Progress calculation utilities
@@ -681,6 +693,53 @@ const FeatureHighlights = () => (
   </div>
 );
 
+// Authentication Alert Component
+const AuthenticationAlert = () => (
+  <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 flex items-center justify-center p-4">
+    <Card className="w-full max-w-md border-0 shadow-2xl bg-gradient-to-br from-white/90 to-red-50/50 backdrop-blur-sm">
+      <CardContent className="p-8 text-center">
+        <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+          <AlertTriangle className="h-10 w-10 text-white" />
+        </div>
+        
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          Authentication Required
+        </h2>
+        
+        <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+          You need to be logged in to access this page. Please sign in to view project progress and analytics.
+        </p>
+
+        <div className="space-y-4">
+          <Button 
+            onClick={() => window.location.href = '/login'}
+            className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl rounded-xl"
+            size="lg"
+          >
+            <PlayCircle className="h-5 w-5 mr-2" />
+            Go to Login
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={() => window.location.href = '/'}
+            className="w-full py-3 text-base rounded-xl border-2"
+          >
+            Back to Home
+          </Button>
+        </div>
+
+        <div className="mt-6 p-4 bg-blue-50/50 rounded-xl border border-blue-200">
+          <div className="flex items-center gap-2 text-sm text-blue-800">
+            <Shield className="h-4 w-4" />
+            <span>Secure access required for project data protection</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+);
+
 export default function VClientPage(): JSX.Element {
   const [projectId, setProjectId] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -690,6 +749,31 @@ export default function VClientPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [requiresAuth, setRequiresAuth] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        const data = await response.json();
+        
+        if (response.ok && data.client) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (err) {
+        console.error('Error checking auth status:', err);
+        setIsAuthenticated(false);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
 
   const fetchProjectDetails = async (): Promise<void> => {
     if (!projectId.trim()) {
@@ -738,6 +822,27 @@ export default function VClientPage(): JSX.Element {
   // Calculate real-time statistics
   const realTimeStatistics = project ? calculateProjectStatistics(project.templates) : null;
 
+  // Show loading while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">Checking Authentication</h3>
+            <p className="text-muted-foreground text-lg">Verifying your access permissions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication alert if not logged in
+  if (!isAuthenticated) {
+    return <AuthenticationAlert />;
+  }
+
+  // Show main content if authenticated
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

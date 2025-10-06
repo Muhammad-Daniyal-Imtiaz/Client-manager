@@ -14,7 +14,7 @@ export default function LeadsFlowHeader() {
   };
 
   const handleSignIn = () => {
-    router.push('/loginn');
+    router.push('/login');
   };
 
   const handleVClient = () => {
@@ -36,7 +36,7 @@ export default function LeadsFlowHeader() {
             
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-6">
-              <a href="/dash" className="hover:text-[#d1ebdb] transition-colors font-medium">Dashboard</a>
+              <a href="/dashboard" className="hover:text-[#d1ebdb] transition-colors font-medium">Dashboard</a>
               <a href="/Comp" className="hover:text-[#d1ebdb] transition-colors font-medium">Projects</a>
               <a href="#" className="hover:text-[#d1ebdb] transition-colors font-medium">Analytics</a>
               <a href="#" className="hover:text-[#d1ebdb] transition-colors font-medium">Team</a>

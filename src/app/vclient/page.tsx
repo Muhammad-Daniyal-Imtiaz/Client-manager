@@ -31,7 +31,6 @@ import {
   ChevronDown,
   ChevronUp,
   Building,
-  Target,
   BarChart3,
   Workflow,
   FolderOpen,
@@ -48,7 +47,9 @@ import {
   Star,
   Rocket,
   Lightbulb,
-  Globe
+  Globe,
+  Key,
+  Lock
 } from 'lucide-react';
 
 // Import types from API
@@ -148,6 +149,8 @@ interface Project {
 
 interface ApiResponse {
   project: Project;
+  requiresAuth?: boolean;
+  authError?: string;
 }
 
 // Progress calculation utilities
@@ -680,10 +683,13 @@ const FeatureHighlights = () => (
 
 export default function VClientPage(): JSX.Element {
   const [projectId, setProjectId] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [token, setToken] = useState<string>('');
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [requiresAuth, setRequiresAuth] = useState<boolean>(false);
 
   const fetchProjectDetails = async (): Promise<void> => {
     if (!projectId.trim()) {
@@ -693,13 +699,24 @@ export default function VClientPage(): JSX.Element {
 
     setError('');
     setProject(null);
+    setRequiresAuth(false);
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/pro/${projectId}`);
+      const params = new URLSearchParams();
+      if (password) params.append('password', password);
+      if (token) params.append('token', token);
+
+      const url = `/api/pro/${projectId}${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url);
       
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.requiresAuth) {
+          setRequiresAuth(true);
+          setError('This project requires authentication. Please enter password and/or token.');
+          return;
+        }
         throw new Error(errorData.error || 'Failed to fetch project');
       }
       
@@ -735,7 +752,7 @@ export default function VClientPage(): JSX.Element {
             </h1>
           </div>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Track your project's real-time progress with beautiful visualizations and detailed task-based analytics
+            Track your project&apos;s real-time progress with beautiful visualizations and detailed task-based analytics
           </p>
         </div>
 
@@ -751,10 +768,11 @@ export default function VClientPage(): JSX.Element {
                 Enter Project Details
               </h2>
             </div>
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-6 items-end">
-              <div className="flex-1 w-full space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Project ID Input */}
+              <div className="space-y-3">
                 <Label htmlFor="projectId" className="text-lg font-semibold text-gray-900">
-                  Project Identifier
+                  Project Identifier *
                 </Label>
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -766,41 +784,97 @@ export default function VClientPage(): JSX.Element {
                     placeholder="Enter your Project ID (e.g., PRJ-001, PROJ-2024)"
                     className="pl-12 py-4 text-lg border-2 border-gray-200 focus:border-blue-500 transition-all duration-300 rounded-xl bg-white/50 backdrop-blur-sm"
                     disabled={isLoading}
+                    required
                   />
                 </div>
-                {error && (
-                  <div className="flex items-center gap-2 text-destructive text-sm bg-red-50/50 p-3 rounded-lg border border-red-200">
-                    <AlertCircle className="h-4 w-4" />
-                    {error}
-                  </div>
-                )}
               </div>
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-                className="py-4 px-10 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl rounded-xl"
-                size="lg"
-              >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <PlayCircle className="h-5 w-5 mr-2" />
-                    View Progress
-                  </>
-                )}
-              </Button>
+
+              {/* Authentication Fields - Only show if required or user wants to provide */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label htmlFor="password" className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Key className="h-4 w-4" />
+                    Project Password (Optional)
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter project password if required"
+                      className="pl-12 py-4 text-lg border-2 border-gray-200 focus:border-blue-500 transition-all duration-300 rounded-xl bg-white/50 backdrop-blur-sm"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="token" className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Access Token (Optional)
+                  </Label>
+                  <div className="relative">
+                    <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      id="token"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      placeholder="Enter access token if required"
+                      className="pl-12 py-4 text-lg border-2 border-gray-200 focus:border-blue-500 transition-all duration-300 rounded-xl bg-white/50 backdrop-blur-sm"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className={`flex items-center gap-2 text-sm p-4 rounded-lg border ${
+                  requiresAuth 
+                    ? 'bg-yellow-50/50 border-yellow-200 text-yellow-800' 
+                    : 'bg-red-50/50 border-red-200 text-red-800'
+                }`}>
+                  <AlertCircle className="h-4 w-4" />
+                  {error}
+                  {requiresAuth && (
+                    <span className="text-xs ml-2">(Authentication Required)</span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <Button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="py-4 px-10 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl rounded-xl flex-1 sm:flex-none"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <PlayCircle className="h-5 w-5 mr-2" />
+                      View Progress
+                    </>
+                  )}
+                </Button>
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Globe className="h-4 w-4" />
+                  <span>Public Access - Authentication Optional</span>
+                </div>
+              </div>
             </form>
+            
             {lastUpdated && (
               <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  <span>Public Access - No Login Required</span>
-                </div>
                 <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                <span>Project ID: {projectId}</span>
               </div>
             )}
           </CardContent>
@@ -871,7 +945,11 @@ export default function VClientPage(): JSX.Element {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Progress
               </Button>
-              <Button variant="outline" className="rounded-xl border-2 py-3 px-6">
+              <Button 
+                variant="outline" 
+                className="rounded-xl border-2 py-3 px-6"
+                onClick={fetchProjectDetails}
+              >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh Data
               </Button>
@@ -963,7 +1041,7 @@ export default function VClientPage(): JSX.Element {
                 Ready to Track Progress?
               </h3>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-                Enter your Project ID above to unlock real-time progress tracking, detailed analytics, and beautiful visualizations of your project's journey.
+                Enter your Project ID above to unlock real-time progress tracking, detailed analytics, and beautiful visualizations of your project&apos;s journey.
               </p>
               <div className="flex justify-center gap-8 text-base text-muted-foreground">
                 <div className="flex items-center gap-2">

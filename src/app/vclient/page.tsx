@@ -35,7 +35,20 @@ import {
   BarChart3,
   Workflow,
   FolderOpen,
-  FolderClosed
+  FolderClosed,
+  Sparkles,
+  TrendingUp,
+  Zap,
+  Shield,
+  Award,
+  Eye,
+  Download,
+  Share2,
+  RefreshCw,
+  Star,
+  Rocket,
+  Lightbulb,
+  Globe
 } from 'lucide-react';
 
 // Import types from API
@@ -258,13 +271,17 @@ const TemplateBadge = ({ category }: { category: string }) => {
       'Social Media': 'outline',
       'Automation': 'default',
       'Graphic Design': 'secondary',
+      'Development': 'secondary',
+      'Design': 'outline',
+      'Marketing': 'default',
     };
     
     return variants[category] || 'outline';
   };
 
   return (
-    <Badge variant={getVariant(category)}>
+    <Badge variant={getVariant(category)} className="flex items-center gap-1">
+      <Sparkles className="h-3 w-3" />
       {category}
     </Badge>
   );
@@ -304,16 +321,16 @@ const TaskCard = ({ task }: { task: Task }) => {
     'Not Assigned';
 
   return (
-    <Card className={`border-l-4 ${
-      isOverdue ? 'border-l-destructive' : 
-      task.status === 'Completed' ? 'border-l-green-500' :
-      task.status === 'In Progress' ? 'border-l-yellow-500' :
-      'border-l-muted'
+    <Card className={`border-l-4 transition-all duration-300 hover:shadow-md ${
+      isOverdue ? 'border-l-destructive bg-red-50/50' : 
+      task.status === 'Completed' ? 'border-l-green-500 bg-green-50/50' :
+      task.status === 'In Progress' ? 'border-l-yellow-500 bg-yellow-50/50' :
+      'border-l-muted bg-blue-50/50'
     }`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <p className="font-medium mb-2">{task.taskdescription}</p>
+            <p className="font-medium mb-2 text-gray-900">{task.taskdescription}</p>
             <div className="flex items-center gap-2 flex-wrap">
               <StatusBadge status={task.status} />
               <StatusBadge status={assignmentStatus} />
@@ -375,15 +392,15 @@ const ProjectPhaseSection = ({ phase }: { phase: Phase }) => {
   const currentProgress = phaseProgress;
 
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 transition-all duration-300 hover:shadow-lg border-0 bg-gradient-to-br from-white to-blue-50/30">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-900/20">
-              <Workflow className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
+              <Workflow className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg">{phase.phasename}</CardTitle>
+              <CardTitle className="text-lg text-gray-900">{phase.phasename}</CardTitle>
               <CardDescription className="flex items-center gap-3 mt-1">
                 <span>Phase {phase.phaseorder}</span>
                 <span>•</span>
@@ -393,8 +410,10 @@ const ProjectPhaseSection = ({ phase }: { phase: Phase }) => {
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-blue-600">{currentProgress.percentage}%</div>
-            <Progress value={currentProgress.percentage} className="w-24 h-2" />
+            <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {currentProgress.percentage}%
+            </div>
+            <Progress value={currentProgress.percentage} className="w-24 h-2 bg-blue-100" />
             <div className="text-xs text-muted-foreground mt-1">
               {currentProgress.completed}/{currentProgress.total} tasks
             </div>
@@ -424,20 +443,24 @@ const TemplateSection = ({ template }: { template: Template }) => {
   }, [template]);
 
   return (
-    <Card className="overflow-hidden mb-6">
+    <Card className="overflow-hidden mb-6 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50/50">
       <CardHeader 
-        className="cursor-pointer pb-4 hover:bg-muted/50 transition-colors border-b"
+        className="cursor-pointer pb-4 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 border-b"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              {isExpanded ? <FolderOpen className="h-5 w-5 text-primary" /> : <FolderClosed className="h-5 w-5 text-primary" />}
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-sm">
+              {isExpanded ? <FolderOpen className="h-5 w-5 text-white" /> : <FolderClosed className="h-5 w-5 text-white" />}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <CardTitle className="text-xl">{template.templatename}</CardTitle>
+                <CardTitle className="text-xl text-gray-900">{template.templatename}</CardTitle>
                 <TemplateBadge category={template.category} />
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                  <span>Template</span>
+                </div>
               </div>
               <CardDescription className="text-base">{template.description}</CardDescription>
               
@@ -448,7 +471,7 @@ const TemplateSection = ({ template }: { template: Template }) => {
                     value={templateProgress.percentage} 
                     label="Overall Progress" 
                     sublabel={`${templateProgress.completedTasks}/${templateProgress.totalTasks} tasks`}
-                    icon={BarChart3}
+                    icon={TrendingUp}
                   />
                 </div>
                 <div>
@@ -458,7 +481,7 @@ const TemplateSection = ({ template }: { template: Template }) => {
                   </div>
                   <Progress 
                     value={templateProgress.totalPhases > 0 ? Math.round((templateProgress.completedPhases / templateProgress.totalPhases) * 100) : 0} 
-                    className="h-2" 
+                    className="h-2 bg-blue-100" 
                   />
                 </div>
                 <div>
@@ -466,39 +489,39 @@ const TemplateSection = ({ template }: { template: Template }) => {
                     <span className="text-muted-foreground">Task Completion</span>
                     <span className="font-bold">{templateProgress.completedTasks}/{templateProgress.totalTasks}</span>
                   </div>
-                  <Progress value={templateProgress.percentage} className="h-2" />
+                  <Progress value={templateProgress.percentage} className="h-2 bg-green-100" />
                 </div>
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full bg-white shadow-sm border">
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </div>
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-6 space-y-6 bg-gradient-to-br from-gray-50/30 to-blue-50/20">
           {/* Template Plan (Original Template Structure) */}
           <div>
-            <h4 className="font-semibold mb-3 text-lg flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+            <h4 className="font-semibold mb-3 text-lg flex items-center gap-2 text-gray-900">
+              <FileText className="h-4 w-4 text-blue-600" />
               Template Plan
             </h4>
             <Accordion type="single" collapsible className="space-y-2">
               {template.templatephases
                 .sort((a: TemplatePhase, b: TemplatePhase) => a.phaseorder - b.phaseorder)
                 .map((phase: TemplatePhase) => (
-                  <AccordionItem key={phase.templatephaseid} value={phase.templatephaseid.toString()} className="border rounded-lg">
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <AccordionItem key={phase.templatephaseid} value={phase.templatephaseid.toString()} className="border rounded-lg bg-white/50 backdrop-blur-sm">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-white/70 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium bg-muted px-2 py-1 rounded">
+                          <span className="text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white px-2 py-1 rounded">
                             Phase {phase.phaseorder}
                           </span>
-                          <span className="font-medium">{phase.phasename}</span>
+                          <span className="font-medium text-gray-900">{phase.phasename}</span>
                         </div>
-                        <Badge variant="outline" className="ml-2">
+                        <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
                           {phase.templatetasks.length} planned tasks
                         </Badge>
                       </div>
@@ -506,11 +529,11 @@ const TemplateSection = ({ template }: { template: Template }) => {
                     <AccordionContent className="px-4 pb-3">
                       <div className="space-y-2">
                         {phase.templatetasks.map((task: TemplateTask, index: number) => (
-                          <div key={task.templatetaskid} className="flex items-center gap-3 p-2 rounded-md bg-muted/50">
-                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                          <div key={task.templatetaskid} className="flex items-center gap-3 p-2 rounded-md bg-white border border-gray-200 shadow-sm">
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium shadow-sm">
                               {index + 1}
                             </div>
-                            <span className="text-sm">{task.taskdescription}</span>
+                            <span className="text-sm text-gray-700">{task.taskdescription}</span>
                           </div>
                         ))}
                       </div>
@@ -522,7 +545,7 @@ const TemplateSection = ({ template }: { template: Template }) => {
 
           {/* Actual Project Progress */}
           <div>
-            <h4 className="font-semibold mb-3 text-lg flex items-center gap-2">
+            <h4 className="font-semibold mb-3 text-lg flex items-center gap-2 text-gray-900">
               <CheckCircle className="h-4 w-4 text-green-600" />
               Project Progress ({templateProgress.percentage}% Complete)
             </h4>
@@ -535,10 +558,11 @@ const TemplateSection = ({ template }: { template: Template }) => {
                   ))}
               </div>
             ) : (
-              <Card className="text-center py-8">
+              <Card className="text-center py-8 bg-gradient-to-br from-yellow-50/50 to-orange-50/50 border-0 shadow-sm">
                 <CardContent>
-                  <Clock className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">No progress yet. Work will appear here once started.</p>
+                  <Clock className="h-12 w-12 mx-auto mb-3 text-yellow-600 opacity-70" />
+                  <p className="text-muted-foreground font-medium">No progress yet. Work will appear here once started.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Tasks and progress will be displayed as the team begins work.</p>
                 </CardContent>
               </Card>
             )}
@@ -558,6 +582,7 @@ const StatisticsCards = ({ statistics }: { statistics: ProjectStatistics }) => {
       percentage: statistics.completionPercentage,
       icon: BarChart3,
       color: "text-blue-600",
+      bgColor: "bg-blue-500",
       description: "Phases where all tasks are completed"
     },
     {
@@ -566,6 +591,7 @@ const StatisticsCards = ({ statistics }: { statistics: ProjectStatistics }) => {
       percentage: statistics.taskCompletionPercentage,
       icon: CheckCircle,
       color: "text-green-600",
+      bgColor: "bg-green-500",
       description: "Individual tasks marked as completed"
     },
     {
@@ -574,6 +600,7 @@ const StatisticsCards = ({ statistics }: { statistics: ProjectStatistics }) => {
       percentage: statistics.assignmentCompletionPercentage,
       icon: Users,
       color: "text-purple-600",
+      bgColor: "bg-purple-500",
       description: "Task assignments completed by team"
     },
     {
@@ -582,6 +609,7 @@ const StatisticsCards = ({ statistics }: { statistics: ProjectStatistics }) => {
       percentage: 0,
       icon: AlertCircle,
       color: "text-red-600",
+      bgColor: "bg-red-500",
       description: "Tasks past due date not completed"
     }
   ];
@@ -589,21 +617,23 @@ const StatisticsCards = ({ statistics }: { statistics: ProjectStatistics }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat, index) => (
-        <Card key={index}>
+        <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                <p className="text-2xl font-bold mt-1 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  {stat.value}
+                </p>
                 {stat.description && (
                   <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
                 )}
                 {stat.percentage > 0 && (
-                  <Progress value={stat.percentage} className="mt-2 w-full" />
+                  <Progress value={stat.percentage} className="mt-2 w-full bg-gray-200" />
                 )}
               </div>
-              <div className={`p-3 rounded-lg bg-muted ${stat.color}`}>
-                <stat.icon className="h-6 w-6" />
+              <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.bgColor} to-${stat.bgColor.replace('500', '600')} shadow-sm`}>
+                <stat.icon className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
@@ -612,6 +642,41 @@ const StatisticsCards = ({ statistics }: { statistics: ProjectStatistics }) => {
     </div>
   );
 };
+
+// Feature Highlights Component
+const FeatureHighlights = () => (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50/50 to-purple-50/50">
+      <CardContent className="p-6 text-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Zap className="h-6 w-6 text-white" />
+        </div>
+        <h3 className="font-semibold text-lg mb-2">Real-time Updates</h3>
+        <p className="text-sm text-muted-foreground">Live progress tracking with automatic updates every 30 seconds</p>
+      </CardContent>
+    </Card>
+    
+    <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50/50 to-emerald-50/50">
+      <CardContent className="p-6 text-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Eye className="h-6 w-6 text-white" />
+        </div>
+        <h3 className="font-semibold text-lg mb-2">Task-Based Progress</h3>
+        <p className="text-sm text-muted-foreground">Accurate progress calculation based on individual task completion</p>
+      </CardContent>
+    </Card>
+    
+    <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50/50 to-red-50/50">
+      <CardContent className="p-6 text-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Shield className="h-6 w-6 text-white" />
+        </div>
+        <h3 className="font-semibold text-lg mb-2">Team Collaboration</h3>
+        <p className="text-sm text-muted-foreground">Track team assignments and individual contributions</p>
+      </CardContent>
+    </Card>
+  </div>
+);
 
 export default function VClientPage(): JSX.Element {
   const [projectId, setProjectId] = useState<string>('');
@@ -657,77 +722,97 @@ export default function VClientPage(): JSX.Element {
   const realTimeStatistics = project ? calculateProjectStatistics(project.templates) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-sm border mb-4">
-            <Target className="h-6 w-6 text-blue-600" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-xl border border-white/20 mb-6">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg">
+              <Rocket className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               Project Progress Hub
             </h1>
           </div>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Real-time progress tracking based on task completion. Progress updates automatically every 30 seconds.
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            Track your project's real-time progress with beautiful visualizations and detailed task-based analytics
           </p>
         </div>
 
+        {/* Feature Highlights */}
+        <FeatureHighlights />
+
         {/* Project ID Input Form */}
-        <Card className="mb-8 shadow-lg border-0">
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1 w-full space-y-2">
-                <Label htmlFor="projectId" className="text-base font-medium">
+        <Card className="mb-8 shadow-2xl border-0 bg-gradient-to-br from-white/80 to-blue-50/50 backdrop-blur-sm">
+          <CardContent className="p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <Lightbulb className="h-6 w-6 text-yellow-600" />
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Enter Project Details
+              </h2>
+            </div>
+            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-6 items-end">
+              <div className="flex-1 w-full space-y-3">
+                <Label htmlFor="projectId" className="text-lg font-semibold text-gray-900">
                   Project Identifier
                 </Label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     type="text"
                     id="projectId"
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
-                    placeholder="Enter your Project ID (e.g., PRJ-001)"
-                    className="pl-10 py-3 text-lg border-2 focus:border-primary transition-colors"
+                    placeholder="Enter your Project ID (e.g., PRJ-001, PROJ-2024)"
+                    className="pl-12 py-4 text-lg border-2 border-gray-200 focus:border-blue-500 transition-all duration-300 rounded-xl bg-white/50 backdrop-blur-sm"
                     disabled={isLoading}
                   />
                 </div>
-                {error && <p className="text-destructive text-sm">{error}</p>}
+                {error && (
+                  <div className="flex items-center gap-2 text-destructive text-sm bg-red-50/50 p-3 rounded-lg border border-red-200">
+                    <AlertCircle className="h-4 w-4" />
+                    {error}
+                  </div>
+                )}
               </div>
               <Button 
                 type="submit" 
                 disabled={isLoading}
-                className="py-3 px-8 text-lg font-medium"
+                className="py-4 px-10 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl rounded-xl"
                 size="lg"
               >
                 {isLoading ? (
                   <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
                     Loading...
                   </>
                 ) : (
                   <>
-                    <PlayCircle className="h-4 w-4 mr-2" />
+                    <PlayCircle className="h-5 w-5 mr-2" />
                     View Progress
                   </>
                 )}
               </Button>
             </form>
             {lastUpdated && (
-              <div className="text-xs text-muted-foreground mt-2 text-right">
-                Last updated: {lastUpdated.toLocaleTimeString()}
+              <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  <span>Public Access - No Login Required</span>
+                </div>
+                <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
               </div>
             )}
           </CardContent>
         </Card>
 
         {isLoading && (
-          <div className="text-center py-16 space-y-4">
-            <div className="inline-flex items-center gap-3">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <div>
-                <h3 className="text-xl font-semibold">Loading Project Details</h3>
-                <p className="text-muted-foreground">Fetching real-time progress updates...</p>
+          <div className="text-center py-20 space-y-6">
+            <div className="inline-flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+              <div className="text-left">
+                <h3 className="text-2xl font-semibold text-gray-900">Loading Project Details</h3>
+                <p className="text-muted-foreground text-lg">Fetching real-time progress updates and analytics...</p>
               </div>
             </div>
           </div>
@@ -735,31 +820,40 @@ export default function VClientPage(): JSX.Element {
 
         {/* Project Details Display */}
         {project && !isLoading && realTimeStatistics && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in duration-500">
             {/* Project Header */}
-            <Card className="shadow-lg border-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-              <CardContent className="p-8">
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <Card className="shadow-2xl border-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white overflow-hidden">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+              <CardContent className="p-8 relative">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
                   <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-4">
-                      <Building className="h-8 w-8" />
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                        <Building className="h-8 w-8" />
+                      </div>
                       <div>
-                        <h2 className="text-3xl font-bold">{project.projectname}</h2>
-                        <div className="flex items-center gap-3 mt-2">
+                        <h2 className="text-4xl font-bold mb-2">{project.projectname}</h2>
+                        <div className="flex items-center gap-4">
                           <StatusBadge status={project.status} />
-                          <span className="text-blue-100">{project.projecttype}</span>
+                          <span className="text-blue-100 font-medium text-lg">{project.projecttype}</span>
+                          <div className="flex items-center gap-1 text-blue-100">
+                            <Award className="h-4 w-4" />
+                            <span>Active Project</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <p className="text-blue-100 text-lg leading-relaxed">
-                      {project.description || 'Comprehensive project tracking and management'}
+                    <p className="text-blue-100 text-xl leading-relaxed max-w-3xl">
+                      {project.description || 'Comprehensive project tracking and management with real-time progress monitoring'}
                     </p>
                   </div>
-                  <div className="text-center lg:text-right">
-                    <div className="text-4xl font-bold mb-2">{realTimeStatistics.completionPercentage}%</div>
-                    <div className="text-blue-200 font-medium">Overall Completion</div>
-                    <Progress value={realTimeStatistics.completionPercentage} className="mt-2 w-32 bg-blue-500" />
-                    <div className="text-blue-200 text-sm mt-1">
+                  <div className="text-center lg:text-right bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                    <div className="text-5xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+                      {realTimeStatistics.completionPercentage}%
+                    </div>
+                    <div className="text-blue-200 font-medium text-lg">Overall Completion</div>
+                    <Progress value={realTimeStatistics.completionPercentage} className="mt-3 w-40 bg-blue-500/30 h-3 rounded-full" />
+                    <div className="text-blue-200 text-sm mt-2">
                       {realTimeStatistics.completedPhases}/{realTimeStatistics.totalPhases} phases complete
                     </div>
                   </div>
@@ -767,18 +861,38 @@ export default function VClientPage(): JSX.Element {
               </CardContent>
             </Card>
 
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Button variant="outline" className="rounded-xl border-2 py-3 px-6">
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+              <Button variant="outline" className="rounded-xl border-2 py-3 px-6">
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Progress
+              </Button>
+              <Button variant="outline" className="rounded-xl border-2 py-3 px-6">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Data
+              </Button>
+            </div>
+
             {/* Statistics */}
             <StatisticsCards statistics={realTimeStatistics} />
 
             {/* Templates Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  <FileText className="h-6 w-6" />
-                  Template Progress (Task-Based)
+            <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50/50">
+              <CardHeader className="pb-6">
+                <CardTitle className="flex items-center gap-3 text-3xl">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-lg">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Template Progress
+                  </span>
                 </CardTitle>
-                <CardDescription className="text-lg">
-                  Progress calculated based on completed tasks. A phase is complete only when all its tasks are completed.
+                <CardDescription className="text-xl">
+                  Real-time progress tracking based on task completion. A phase is complete only when all its tasks are finished.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -787,38 +901,46 @@ export default function VClientPage(): JSX.Element {
                     <TemplateSection key={template.templateid} template={template} />
                   ))
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">No Templates Assigned</h3>
-                    <p>Project templates will appear here once they are assigned to this project.</p>
+                  <div className="text-center py-16 text-muted-foreground bg-gradient-to-br from-gray-50/50 to-blue-50/30 rounded-2xl border-2 border-dashed">
+                    <FileText className="h-20 w-20 mx-auto mb-6 opacity-30" />
+                    <h3 className="text-2xl font-semibold mb-3">No Templates Assigned</h3>
+                    <p className="text-lg max-w-md mx-auto">
+                      Project templates will appear here once they are assigned to this project.
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Team Section */}
-            <Card>
+            <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-blue-50/30">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Project Team
+                <CardTitle className="flex items-center gap-3 text-2xl">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Project Team
+                  </span>
                 </CardTitle>
-                <CardDescription>
-                  {project.team.length} team member{project.team.length !== 1 ? 's' : ''} working on this project
+                <CardDescription className="text-lg">
+                  {project.team.length} dedicated team member{project.team.length !== 1 ? 's' : ''} working on this project
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {project.team.map((member: TeamMember) => (
-                    <Card key={member.projectteamid} className="text-center">
+                    <Card key={member.projectteamid} className="text-center border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50/50">
                       <CardContent className="p-6">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-3">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4 shadow-lg">
                           {member.user.name.split(' ').map(n => n[0]).join('')}
                         </div>
-                        <h4 className="font-semibold">{member.user.name}</h4>
-                        <p className="text-sm text-muted-foreground mb-2">{member.user.email}</p>
-                        <Badge variant="secondary">{member.role}</Badge>
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <h4 className="font-semibold text-lg text-gray-900 mb-1">{member.user.name}</h4>
+                        <p className="text-sm text-muted-foreground mb-3 truncate">{member.user.email}</p>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-sm py-1 px-3">
+                          {member.role}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-3">
                           Joined {new Date(member.addedat).toLocaleDateString()}
                         </p>
                       </CardContent>
@@ -832,21 +954,29 @@ export default function VClientPage(): JSX.Element {
 
         {/* Empty State */}
         {!project && !isLoading && (
-          <Card className="text-center py-16 shadow-lg border-0">
+          <Card className="text-center py-20 shadow-2xl border-0 bg-gradient-to-br from-white/80 to-blue-50/50 backdrop-blur-sm">
             <CardContent>
-              <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-2xl font-semibold mb-2">Enter Project ID</h3>
-              <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                Enter your Project ID above to access real-time progress tracking based on task completion.
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <Search className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-3xl font-semibold mb-3 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Ready to Track Progress?
+              </h3>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+                Enter your Project ID above to unlock real-time progress tracking, detailed analytics, and beautiful visualizations of your project's journey.
               </p>
-              <div className="flex justify-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4" />
+              <div className="flex justify-center gap-8 text-base text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
                   Real-time Updates
                 </div>
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  Task-Based Progress
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  Team Collaboration
+                </div>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                  Detailed Analytics
                 </div>
               </div>
             </CardContent>

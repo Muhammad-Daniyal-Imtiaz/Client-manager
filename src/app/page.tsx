@@ -1,29 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Rocket, BarChart3, Target, Users, ArrowRight, Shield, Zap, Star, ChevronDown, Play, Award, TrendingUp, CheckCircle, Sparkles, Menu, X, Database, Clock, Calendar, PieChart, Eye, Download, MessageCircle, Bell, Search, Lock, BadgeCheck, Heart, ThumbsUp, Goal, BarChart, CheckSquare, Timer, Trophy, Share } from 'lucide-react';
+import { useState } from 'react';
+import { Rocket, BarChart3, Target, Users, ArrowRight, Shield, Zap, Star, ChevronDown, Play, Award, TrendingUp, CheckCircle, Sparkles, Menu, X, Database } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function LeadsFlowHeader() {
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [activeFeature, setActiveFeature] = useState(0);
   const router = useRouter();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % 3);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleLoadProjects = () => {
     router.push('/Comp');
@@ -37,120 +21,73 @@ export default function LeadsFlowHeader() {
     router.push('/vclient');
   };
 
-  const features = [
-    {
-      icon: <TrendingUp className="w-8 h-8" />,
-      title: "Real-Time Progress Tracking",
-      description: "Watch your projects evolve with live updates and dynamic progress indicators",
-      stats: "95% faster decision making"
-    },
-    {
-      icon: <Goal className="w-8 h-8" />,
-      title: "Smart Milestone Management",
-      description: "Automated milestone tracking with intelligent deadline predictions",
-      stats: "99% on-time delivery"
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Team Performance Analytics",
-      description: "Deep insights into team productivity and individual contributions",
-      stats: "47% productivity boost"
-    }
-  ];
-
-  const stats = [
-    { number: "500+", label: "Projects Successfully Tracked", icon: <Trophy className="w-6 h-6" /> },
-    { number: "98%", label: "Client Satisfaction Rate", icon: <Heart className="w-6 h-6" /> },
-    { number: "24/7", label: "Real-Time Monitoring", icon: <Clock className="w-6 h-6" /> },
-    { number: "120+", label: "Active Teams", icon: <Users className="w-6 h-6" /> }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 overflow-hidden">
-      {/* Enhanced Header with Glass Morphism */}
-      <header className={`fixed w-full top-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-white/90 backdrop-blur-xl shadow-2xl shadow-blue-500/10' : 'bg-transparent'}`}>
+    <div className="min-h-screen bg-gradient-to-br from-[#e7f3ef] to-[#d1ebdb]/30">
+      {/* Header with professional color scheme */}
+      <header className="bg-[#305759] text-white shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                  <Rocket className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-                  LeadsFlow 180
-                </h1>
-                <p className="text-xs text-gray-500 font-medium">Project Intelligence Platform</p>
-              </div>
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold">LeadsFlow 180</h1>
+              <span className="ml-4 px-3 py-1 bg-white text-[#305759] rounded-full text-sm font-medium">
+                Project Tracker
+              </span>
             </div>
             
-            {/* Enhanced Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-1 bg-white/80 rounded-2xl px-4 py-2 shadow-lg shadow-blue-500/10 border border-white/50">
-              <a href="/dashboard" className="px-4 py-2 text-gray-700 hover:text-blue-600 transition-all duration-300 font-semibold rounded-xl hover:bg-blue-50 flex items-center space-x-2">
-                <BarChart className="w-4 h-4" />
-                <span>Dashboard</span>
-              </a>
+            {/* Desktop Navigation - Updated */}
+            <nav className="hidden md:flex space-x-6">
+              <a href="/dashboard" className="hover:text-[#d1ebdb] transition-colors font-medium">Dashboard</a>
               <button 
                 onClick={handleVClient}
-                className="px-4 py-2 text-gray-700 hover:text-emerald-600 transition-all duration-300 font-semibold rounded-xl hover:bg-emerald-50 flex items-center space-x-2"
+                className="hover:text-[#d1ebdb] transition-colors font-medium"
               >
-                <Eye className="w-4 h-4" />
-                <span>Project Progress</span>
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                View Project Progress
               </button>
             </nav>
             
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handleSignIn}
-                className="hidden md:block px-6 py-2.5 text-gray-700 hover:text-blue-600 transition-all duration-300 font-semibold rounded-xl hover:bg-white/80 backdrop-blur-sm"
-              >
-                Sign In
-              </button>
-              <button 
-                onClick={handleVClient}
-                className="relative bg-gradient-to-r from-blue-600 to-emerald-500 px-6 py-3 rounded-xl font-semibold text-white hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-500 flex items-center gap-3 group overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <TrendingUp className="w-5 h-5 relative z-10" />
-                <span className="relative z-10">View Progress</span>
-                <ArrowRight className="w-4 h-4 relative z-10 transform group-hover:translate-x-1 transition-transform duration-300" />
-              </button>
-              
-              {/* Enhanced Mobile Menu Button */}
-              <button 
-                className="lg:hidden p-3 rounded-xl bg-white/80 backdrop-blur-sm shadow-lg border border-white/50"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-          
-          {/* Enhanced Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="lg:hidden mt-4 py-6 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50">
-              <nav className="flex flex-col space-y-3 px-4">
-                <a href="/dash" className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-blue-600 transition-all duration-300 font-semibold rounded-xl hover:bg-blue-50">
-                  <BarChart className="w-5 h-5" />
-                  <span>Dashboard</span>
-                </a>
+            {!projectsLoaded && (
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={handleSignIn}
+                  className="hidden md:block text-white/80 hover:text-white transition-colors font-medium"
+                >
+                  Sign In
+                </button>
                 <button 
                   onClick={handleVClient}
-                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-emerald-600 transition-all duration-300 font-semibold rounded-xl hover:bg-emerald-50 text-left"
+                  className="bg-white text-[#305759] px-5 py-2.5 rounded-lg font-medium hover:bg-[#e7f3ef] transition-all duration-300 flex items-center gap-2 shadow-sm"
                 >
-                  <Eye className="w-5 h-5" />
-                  <span>Project Progress</span>
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <Rocket className="w-4 h-4" />
+                  View Project Progress
+                </button>
+                
+                {/* Mobile Menu Button */}
+                <button 
+                  className="md:hidden p-2 rounded-lg bg-white/10"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                >
+                  {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Mobile Navigation - Updated */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 py-4 border-t border-white/20">
+              <nav className="flex flex-col space-y-3">
+                <a href="/dash" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Dashboard</a>
+                <button 
+                  onClick={handleVClient}
+                  className="py-2 px-4 text-left hover:bg-white/10 rounded-lg transition-colors font-medium"
+                >
+                  View Project Progress
                 </button>
                 <button 
                   onClick={handleSignIn}
-                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-blue-600 transition-all duration-300 font-semibold rounded-xl hover:bg-blue-50 text-left"
+                  className="py-2 px-4 text-left hover:bg-white/10 rounded-lg transition-colors font-medium"
                 >
-                  <Lock className="w-5 h-5" />
-                  <span>Sign In</span>
+                  Sign In
                 </button>
               </nav>
             </div>
@@ -158,250 +95,230 @@ export default function LeadsFlowHeader() {
         </div>
       </header>
 
-      <main className="pt-16">
-        {/* Ultra-Modern Hero Section */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-          {/* Advanced Background with Multiple Layers */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-emerald-500/20"></div>
-          <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl"></div>
-          
-          {/* Main Background Image with Enhanced Overlay */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-            style={{
-              backgroundImage: "url('https://media.istockphoto.com/id/1411195926/photo/project-manager-working-on-laptop-and-updating-tasks-and-milestones-progress-planning-with.webp?a=1&b=1&s=612x612&w=0&k=20&c=DEYYzHlSuCwIV3mkyRykDgunwcjOlxEve4MaFFDKl-Y=')"
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 via-blue-800/70 to-emerald-900/80 backdrop-blur-[1px]"></div>
+      <main>
+        {projectsLoaded ? (
+          <div className="container mx-auto px-6 py-12">
+            <h2 className="text-3xl font-bold text-[#305759] mb-8">Project Dashboard</h2>
+            <div className="bg-white rounded-xl p-8 shadow-lg">
+              <p className="text-lg text-[#192524]">Your projects will appear here once loaded.</p>
+            </div>
           </div>
-          
-          <div className="container mx-auto px-6 relative z-10">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-12 min-h-screen py-20">
-              {/* Left Content - Enhanced */}
-              <div className="flex-1 text-white space-y-8">
-                {/* Trust Badge */}
-                <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
-                  <BadgeCheck className="w-5 h-5 text-green-400" />
-                  <span className="text-sm font-semibold">Trusted by 500+ Marketing Teams</span>
-                </div>
+        ) : (
+          <>
+            {/* Hero Section with Updated Background Image */}
+            <section 
+              className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 bg-cover bg-center bg-no-repeat"
+              style={{
+                backgroundImage: "url('https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')"
+              }}
+            >
+              {/* Reduced opacity overlay to make background more visible */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#305759]/70 to-[#192524]/60"></div>
+              
+              <div className="container mx-auto px-6 relative z-10">
+                <div className="flex flex-col items-center justify-center text-center min-h-screen py-12 text-white">
+                  {/* Main heading */}
+                  <div className="mb-10 max-w-4xl">
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-balance leading-tight mb-6">
+                      Track Project Progress
+                    </h1>
+                    <h2 className="text-4xl md:text-5xl font-bold mb-8">
+                      In Real-Time
+                    </h2>
+                    <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-10">
+                      Monitor your project milestones, track team progress, and stay updated with real-time project status updates and analytics.
+                    </p>
+                  </div>
 
-                {/* Main Headline */}
-                <div className="space-y-6">
-                  <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                    Project Progress
-                    <span className="block bg-gradient-to-r from-blue-200 to-emerald-200 bg-clip-text text-transparent">
-                      Reimagined
-                    </span>
-                  </h1>
-                  <p className="text-xl lg:text-2xl text-blue-100 leading-relaxed max-w-2xl">
-                    Experience the future of project tracking with AI-powered insights, real-time collaboration, and stunning visual progress dashboards.
-                  </p>
-                </div>
+                  {/* Divider */}
+                  <div className="w-24 h-1 bg-[#d1ebdb] mb-10"></div>
 
-                {/* Interactive Feature Showcase */}
-                <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 max-w-2xl">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="p-3 bg-white/20 rounded-2xl">
-                      {features[activeFeature].icon}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{features[activeFeature].title}</h3>
-                      <p className="text-blue-100">{features[activeFeature].description}</p>
-                    </div>
+                  {/* CTA Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-6 mb-16">
+                    <button 
+                      onClick={handleVClient}
+                      className="bg-[#d1ebdb] text-[#305759] px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white transition-all duration-300 flex items-center gap-3 shadow-md"
+                    >
+                      <span>View Project Progress</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                    
+                    <button 
+                      onClick={handleLoadProjects}
+                      className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white hover:text-[#305759] transition-all duration-300 flex items-center gap-3"
+                    >
+                      <Play className="w-5 h-5" />
+                      <span>Launch Dashboard</span>
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-green-400 font-bold">{features[activeFeature].stats}</div>
-                    <div className="flex space-x-2">
-                      {[0, 1, 2].map((index) => (
-                        <button
-                          key={index}
-                          onClick={() => setActiveFeature(index)}
-                          className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                            activeFeature === index ? 'bg-white' : 'bg-white/30'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Enhanced CTA Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <button 
-                    onClick={handleVClient}
-                    className="group relative bg-gradient-to-r from-blue-500 to-emerald-500 px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-500 flex items-center gap-4 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <Eye className="w-6 h-6 relative z-10" />
-                    <span className="relative z-10">View Live Progress</span>
-                    <ArrowRight className="w-5 h-5 relative z-10 transform group-hover:translate-x-1 transition-transform duration-300" />
-                  </button>
-                  
-                  <button 
-                    onClick={handleLoadProjects}
-                    className="group bg-white/10 backdrop-blur-md border-2 border-white/30 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-white hover:text-blue-900 transition-all duration-500 flex items-center gap-4"
-                  >
-                    <Play className="w-5 h-5" />
-                    <span>Watch Demo</span>
-                  </button>
-                </div>
-
-                {/* Social Proof */}
-                <div className="flex items-center space-x-6 pt-8">
-                  <div className="flex -space-x-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="w-10 h-10 bg-gradient-to-br from-blue-400 to-emerald-400 rounded-full border-2 border-white flex items-center justify-center text-white font-bold text-sm">
-                        {i}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-blue-100">
-                    <div className="font-bold">Join 120+ Teams</div>
-                    <div className="text-sm">Already tracking progress</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side - Interactive Dashboard Preview */}
-              <div className="flex-1 relative">
-                <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
-                  {/* Dashboard Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-white font-semibold">Live Dashboard</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-white/50 rounded-full"></div>
-                      <div className="w-2 h-2 bg-white/50 rounded-full"></div>
-                      <div className="w-2 h-2 bg-white/50 rounded-full"></div>
-                    </div>
-                  </div>
-                  
-                  {/* Progress Bars */}
-                  <div className="space-y-4">
-                    {[
-                      { label: "Design Sprint", progress: 85, color: "bg-emerald-400" },
-                      { label: "Development", progress: 60, color: "bg-blue-400" },
-                      { label: "QA Testing", progress: 30, color: "bg-amber-400" },
-                      { label: "Deployment", progress: 10, color: "bg-purple-400" }
-                    ].map((item, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between text-white text-sm">
-                          <span>{item.label}</span>
-                          <span>{item.progress}%</span>
-                        </div>
-                        <div className="w-full bg-white/20 rounded-full h-2">
-                          <div 
-                            className={`${item.color} h-2 rounded-full transition-all duration-1000 ease-out`}
-                            style={{ width: `${item.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-4 mt-6">
-                    <div className="bg-white/10 rounded-2xl p-4 text-center">
-                      <div className="text-2xl font-bold text-white">12</div>
-                      <div className="text-blue-100 text-sm">Active Tasks</div>
-                    </div>
-                    <div className="bg-white/10 rounded-2xl p-4 text-center">
-                      <div className="text-2xl font-bold text-white">3</div>
-                      <div className="text-blue-100 text-sm">Due Today</div>
-                    </div>
+                  {/* Project Progress Preview */}
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 max-w-2xl">
+                    <h3 className="text-2xl font-bold mb-2">Real-time Progress Tracking</h3>
+                    <p className="text-lg">Monitor milestones, deadlines, and team performance in one centralized dashboard</p>
                   </div>
                 </div>
                 
-                {/* Floating Elements */}
-                <div className="absolute -top-4 -right-4 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg">
-                  <Zap className="w-4 h-4 text-white" />
-                </div>
-                <div className="absolute -bottom-4 -left-4 w-8 h-8 bg-green-400 rounded-full flex items-center justify-center shadow-lg">
-                  <TrendingUp className="w-4 h-4 text-white" />
+                {/* Scroll indicator */}
+                <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2">
+                  <div className="flex flex-col items-center text-white animate-bounce">
+                    <span className="text-sm mb-2">Scroll to explore</span>
+                    <ChevronDown className="w-6 h-6" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Enhanced Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-            <div className="flex flex-col items-center space-y-2 animate-bounce">
-              <span className="text-white/80 text-sm font-semibold">Explore Features</span>
-              <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
-                <div className="w-1 h-3 bg-white/80 rounded-full mt-2"></div>
-              </div>
-            </div>
-          </div>
-        </section>
+            {/* Features Section */}
+            <section className="py-20 bg-gradient-to-b from-[#e7f3ef] to-[#d1ebdb]/50 relative">
+              <div className="container mx-auto px-6">
+                <div className="text-center max-w-3xl mx-auto mb-16">
+                  <h2 className="text-4xl md:text-5xl font-bold text-[#192524] mb-6">
+                    Track Your Project <span className="text-[#305759]">Progress</span>
+                  </h2>
+                  <p className="text-xl text-[#192524]">
+                    Get real-time insights into your project milestones, team performance, and completion status.
+                  </p>
+                </div>
 
-        {/* Advanced Stats Section */}
-        <section className="py-20 bg-gradient-to-br from-white to-blue-50 relative overflow-hidden">
-          {/* Background Elements */}
-          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white to-transparent"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl"></div>
-          
-          <div className="container mx-auto px-6 relative z-10">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {stats.map((stat, index) => (
-                <div 
-                  key={index}
-                  className="group bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-500 border border-blue-100"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-2xl text-white group-hover:scale-110 transition-transform duration-300">
-                      {stat.icon}
+                <div className="grid md:grid-cols-3 gap-8">
+                  <div className="bg-white/90 p-8 rounded-2xl border border-[#959D90]/30 hover:shadow-lg transition-all duration-300">
+                    <div className="w-16 h-16 bg-[#305759] rounded-2xl flex items-center justify-center mb-6">
+                      <TrendingUp className="w-8 h-8 text-white" />
                     </div>
-                    <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-                      {stat.number}
+                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Progress Analytics</h3>
+                    <p className="text-[#192524] mb-4">
+                      Track project completion rates and team performance with real-time progress analytics.
+                    </p>
+                    <ul className="space-y-2">
+                      {['Milestone tracking', 'Completion metrics', 'Progress reports', 'Timeline updates'].map((item) => (
+                        <li key={item} className="flex items-center text-[#192524]">
+                          <CheckCircle className="w-5 h-5 text-[#305759] mr-2" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="bg-white/90 p-8 rounded-2xl border border-[#959D90]/30 hover:shadow-lg transition-all duration-300">
+                    <div className="w-16 h-16 bg-[#305759] rounded-2xl flex items-center justify-center mb-6">
+                      <Target className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Milestone Tracking</h3>
+                    <p className="text-[#192524] mb-4">
+                      Monitor all your project milestones and deadlines with intuitive progress indicators.
+                    </p>
+                    <ul className="space-y-2">
+                      {['Timeline view', 'Deadline alerts', 'Progress indicators', 'Status updates'].map((item) => (
+                        <li key={item} className="flex items-center text-[#192524]">
+                          <CheckCircle className="w-5 h-5 text-[#305759] mr-2" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="bg-white/90 p-8 rounded-2xl border border-[#959D90]/30 hover:shadow-lg transition-all duration-300">
+                    <div className="w-16 h-16 bg-[#305759] rounded-2xl flex items-center justify-center mb-6">
+                      <Users className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#192524] mb-4">Team Progress</h3>
+                    <p className="text-[#192524] mb-4">
+                      Track individual and team contributions with detailed progress monitoring and reporting.
+                    </p>
+                    <ul className="space-y-2">
+                      {['Team performance', 'Task completion', 'Progress metrics', 'Contribution tracking'].map((item) => (
+                        <li key={item} className="flex items-center text-[#192524]">
+                          <CheckCircle className="w-5 h-5 text-[#305759] mr-2" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Stats Section */}
+            <section className="py-20 bg-[#305759] relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-full opacity-10">
+                <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full filter blur-3xl"></div>
+                <div className="absolute bottom-20 right-10 w-72 h-72 bg-[#d1ebdb] rounded-full filter blur-3xl"></div>
+              </div>
+              
+              <div className="container mx-auto px-6 relative z-10">
+                <div className="text-center text-white mb-16">
+                  <h2 className="text-4xl md:text-5xl font-bold mb-6">Real-Time Project Insights</h2>
+                  <p className="text-xl text-white/90 max-w-3xl mx-auto">
+                    Get instant visibility into your project status and team performance with our advanced progress tracking.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
+                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">95%</div>
+                    <div className="text-white/90">Projects On Track</div>
+                  </div>
+                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
+                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">24/7</div>
+                    <div className="text-white/90">Progress Updates</div>
+                  </div>
+                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
+                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">99%</div>
+                    <div className="text-white/90">Deadline Accuracy</div>
+                  </div>
+                  <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
+                    <div className="text-4xl md:text-5xl font-bold text-white mb-2">500+</div>
+                    <div className="text-white/90">Milestones Tracked</div>
+                  </div>
+                </div>
+                
+                <div className="mt-16 bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="text-center md:text-left">
+                      <h3 className="text-2xl font-bold text-white mb-4">Ready to track your progress?</h3>
+                      <p className="text-white/90">Get real-time insights into your project milestones and team performance.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button 
+                        onClick={handleVClient}
+                        className="bg-white text-[#305759] px-8 py-4 rounded-xl font-semibold hover:bg-[#e7f3ef] transition-all duration-300 flex items-center gap-3 whitespace-nowrap shrink-0 shadow-md"
+                      >
+                        <TrendingUp className="w-5 h-5" />
+                        View Project Progress
+                      </button>
+                      <button 
+                        onClick={handleLoadProjects}
+                        className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-[#305759] transition-all duration-300 flex items-center gap-3"
+                      >
+                        Launch Dashboard
+                      </button>
                     </div>
                   </div>
-                  <div className="text-gray-600 font-semibold">{stat.label}</div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+              </div>
+            </section>
+          </>
+        )}
+      </main>
 
-      {/* Enhanced Footer */}
-        <footer className="bg-gradient-to-br from-gray-900 to-blue-900 text-white py-16 relative overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-400 rounded-full blur-3xl"></div>
-          </div>
-          
-          <div className="container mx-auto px-6 relative z-10">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Rocket className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-3xl font-bold">LeadsFlow 180</h3>
-              </div>
-              <p className="text-blue-200 max-w-2xl mx-auto mb-8 text-lg">
-                The most advanced project progress tracking platform with AI-powered insights and real-time collaboration.
-              </p>
-              <div className="flex justify-center space-x-6">
-                <button className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all duration-300">
-                  <ThumbsUp className="w-6 h-6" />
-                </button>
-                <button className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all duration-300">
-                  <MessageCircle className="w-6 h-6" />
-                </button>
-                <button className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all duration-300">
-                  <Share className="w-6 h-6" />
-                </button>
-              </div>
-              <p className="text-blue-300/60 text-sm mt-8">
-                © {new Date().getFullYear()} LeadsFlow 180. The future of project tracking is here.
-              </p>
+      {/* Footer */}
+      {!projectsLoaded && (
+        <footer className="bg-[#192524] text-white py-12">
+          <div className="container mx-auto px-6 text-center">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Star className="w-6 h-6 text-[#d1ebdb]" />
+              <h3 className="text-2xl font-bold">LeadsFlow 180</h3>
             </div>
+            <p className="text-white/80 max-w-2xl mx-auto mb-6">
+              Advanced project progress tracking and milestone management for teams that need real-time visibility.
+            </p>
+            <p className="text-white/60 text-sm">
+              © {new Date().getFullYear()} LeadsFlow 180. All rights reserved.
+            </p>
           </div>
         </footer>
-      </main>
+      )}
     </div>
   );
 }

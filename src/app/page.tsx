@@ -17,6 +17,10 @@ export default function LeadsFlowHeader() {
     router.push('/loginn');
   };
 
+  const handleVClient = () => {
+    router.push('/vclient');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e7f3ef] to-[#d1ebdb]/30">
       {/* Header with professional color scheme */}
@@ -36,6 +40,12 @@ export default function LeadsFlowHeader() {
               <a href="/Comp" className="hover:text-[#d1ebdb] transition-colors font-medium">Projects</a>
               <a href="#" className="hover:text-[#d1ebdb] transition-colors font-medium">Analytics</a>
               <a href="#" className="hover:text-[#d1ebdb] transition-colors font-medium">Team</a>
+              <button 
+                onClick={handleVClient}
+                className="hover:text-[#d1ebdb] transition-colors font-medium"
+              >
+                VClient
+              </button>
             </nav>
             
             {!projectsLoaded && (
@@ -73,6 +83,12 @@ export default function LeadsFlowHeader() {
                 <a href="/Comp" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Projects</a>
                 <a href="#" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Analytics</a>
                 <a href="#" className="py-2 px-4 hover:bg-white/10 rounded-lg transition-colors font-medium">Team</a>
+                <button 
+                  onClick={handleVClient}
+                  className="py-2 px-4 text-left hover:bg-white/10 rounded-lg transition-colors font-medium"
+                >
+                  VClient
+                </button>
                 <button 
                   onClick={handleSignIn}
                   className="py-2 px-4 text-left hover:bg-white/10 rounded-lg transition-colors font-medium"
@@ -133,9 +149,12 @@ export default function LeadsFlowHeader() {
                       <ArrowRight className="w-5 h-5" />
                     </button>
                     
-                    <button className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white hover:text-[#305759] transition-all duration-300 flex items-center gap-3">
+                    <button 
+                      onClick={handleVClient}
+                      className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white hover:text-[#305759] transition-all duration-300 flex items-center gap-3"
+                    >
                       <Play className="w-5 h-5" />
-                      <span>Watch Demo</span>
+                      <span>Go to VClient</span>
                     </button>
                   </div>
 
@@ -266,13 +285,21 @@ export default function LeadsFlowHeader() {
                       <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
                       <p className="text-white/90">Experience the power of LeadsFlow 180 with our 14-day free trial.</p>
                     </div>
-                    <button 
-                      onClick={handleLoadProjects}
-                      className="bg-white text-[#305759] px-8 py-4 rounded-xl font-semibold hover:bg-[#e7f3ef] transition-all duration-300 flex items-center gap-3 whitespace-nowrap shrink-0 shadow-md"
-                    >
-                      <Rocket className="w-5 h-5" />
-                      Start Free Trial
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button 
+                        onClick={handleLoadProjects}
+                        className="bg-white text-[#305759] px-8 py-4 rounded-xl font-semibold hover:bg-[#e7f3ef] transition-all duration-300 flex items-center gap-3 whitespace-nowrap shrink-0 shadow-md"
+                      >
+                        <Rocket className="w-5 h-5" />
+                        Start Free Trial
+                      </button>
+                      <button 
+                        onClick={handleVClient}
+                        className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-[#305759] transition-all duration-300 flex items-center gap-3"
+                      >
+                        Go to VClient
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

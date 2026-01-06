@@ -14,32 +14,159 @@ import {
   Building,
   Phone,
   ArrowRight,
+  Briefcase,
+  Code,
+  Shield,
+  Search as SearchIcon,
+  UserCog,
+  BarChart3,
+  Calendar,
+  Award,
+  Lock,
+  Key
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-interface Client {
+interface UserData {
   id: string;
   email: string;
   name: string;
-  company: string;
+  role: string;
+  avatar_url?: string;
   phone?: string;
-  role?: string;
   created_at?: string;
   updated_at?: string;
+  last_login?: string;
+  roleData?: any;
 }
 
 export default function Dashboard() {
   const [active, setActive] = useState("Home");
-  const [client, setClient] = useState<Client | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const menuItems = [
-    { name: "Home", icon: Home },
-    { name: "Applications", icon: FileText },
-    { name: "Users", icon: Users },
-    { name: "Settings", icon: Settings },
-  ];
+  const getRoleMenuItems = (role: string) => {
+    const baseItems = [
+      { name: "Home", icon: Home },
+      { name: "Applications", icon: FileText },
+      { name: "Users", icon: Users },
+      { name: "Settings", icon: Settings },
+    ];
+
+    switch (role) {
+      case 'client':
+        return [
+          ...baseItems,
+          { name: "Projects", icon: Building },
+          { name: "Analytics", icon: BarChart3 }
+        ];
+      case 'project_manager':
+        return [
+          ...baseItems,
+          { name: "Team", icon: Users },
+          { name: "Timeline", icon: Calendar },
+          { name: "Reports", icon: FileText }
+        ];
+      case 'full_stack_developer':
+      case 'lead_full_stack_developer':
+        return [
+          ...baseItems,
+          { name: "Tasks", icon: Code },
+          { name: "Code", icon: Code },
+          { name: "Review", icon: Shield }
+        ];
+      case 'admin':
+        return [
+          ...baseItems,
+          { name: "Admin Panel", icon: Shield },
+          { name: "Audit Log", icon: FileText },
+          { name: "Permissions", icon: Lock }
+        ];
+      case 'seo_developer':
+        return [
+          ...baseItems,
+          { name: "SEO Tools", icon: SearchIcon },
+          { name: "Keywords", icon: Key },
+          { name: "Analytics", icon: BarChart3 }
+        ];
+      default:
+        return baseItems;
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'client':
+        return Building;
+      case 'project_manager':
+        return Briefcase;
+      case 'full_stack_developer':
+      case 'lead_full_stack_developer':
+        return Code;
+      case 'admin':
+        return Shield;
+      case 'seo_developer':
+        return SearchIcon;
+      default:
+        return User;
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'client':
+        return "bg-blue-500";
+      case 'project_manager':
+        return "bg-purple-500";
+      case 'full_stack_developer':
+        return "bg-green-500";
+      case 'lead_full_stack_developer':
+        return "bg-orange-500";
+      case 'admin':
+        return "bg-red-500";
+      case 'seo_developer':
+        return "bg-indigo-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  const getRoleStats = (role: string, roleData: any) => {
+    switch (role) {
+      case 'client':
+        return [
+          { label: "Active Projects", value: roleData?.project_count || 0, icon: Briefcase, color: "text-blue-600" },
+          { label: "Company Size", value: roleData?.company_size || "1-10", icon: Users, color: "text-purple-600" },
+          { label: "Budget Range", value: roleData?.budget_range || "<10k", icon: BarChart3, color: "text-green-600" },
+        ];
+      case 'project_manager':
+        return [
+          { label: "Active Projects", value: roleData?.active_projects || 0, icon: Briefcase, color: "text-blue-600" },
+          { label: "Team Size", value: roleData?.team_size || 0, icon: Users, color: "text-purple-600" },
+          { label: "Success Rate", value: `${roleData?.success_rate || 0}%`, icon: Award, color: "text-green-600" },
+        ];
+      case 'full_stack_developer':
+        return [
+          { label: "Current Projects", value: roleData?.current_projects || 0, icon: Code, color: "text-blue-600" },
+          { label: "Tech Stack", value: roleData?.tech_stack?.length || 0, icon: Code, color: "text-purple-600" },
+          { label: "Experience", value: `${roleData?.years_experience || 0} years`, icon: Award, color: "text-green-600" },
+        ];
+      case 'admin':
+        return [
+          { label: "Admin Level", value: roleData?.admin_level || "Moderator", icon: Shield, color: "text-blue-600" },
+          { label: "Permissions", value: roleData?.permissions?.length || 0, icon: Lock, color: "text-purple-600" },
+          { label: "Last Audit", value: "Today", icon: Calendar, color: "text-green-600" },
+        ];
+      default:
+        return [
+          { label: "Total Applications", value: "1,245", icon: FileText, color: "text-green-600" },
+          { label: "Active Users", value: "3,498", icon: Users, color: "text-blue-600" },
+          { label: "Pending Approvals", value: "76", icon: AlertTriangle, color: "text-red-600" },
+        ];
+    }
+  };
 
   useEffect(() => {
     checkAuthStatus();
@@ -50,15 +177,14 @@ export default function Dashboard() {
       const response = await fetch('/api/auth/session');
       const data = await response.json();
       
-      if (response.ok && data.client) {
-        setClient(data.client);
+      if (response.ok && data.user) {
+        setUser(data.user);
       } else {
-        // Redirect to login if not authenticated
-        window.location.href = '/login';
+        window.location.href = '/role-selection';
       }
     } catch (err) {
       console.error('Error checking auth status:', err);
-      window.location.href = '/login';
+      window.location.href = '/role-selection';
     } finally {
       setLoading(false);
     }
@@ -93,18 +219,23 @@ export default function Dashboard() {
     );
   }
 
-  if (!client) {
+  if (!user) {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-green-100 via-gray-100 to-green-200 items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Not authenticated</p>
-          <Button onClick={() => window.location.href = '/login'} className="mt-4">
-            Go to Login
+          <Button onClick={() => window.location.href = '/role-selection'} className="mt-4">
+            Select Role
           </Button>
         </div>
       </div>
     );
   }
+
+  const RoleIcon = getRoleIcon(user.role);
+  const roleColor = getRoleColor(user.role);
+  const menuItems = getRoleMenuItems(user.role);
+  const roleStats = getRoleStats(user.role, user.roleData);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-green-100 via-gray-100 to-green-200 text-gray-900">
@@ -113,32 +244,41 @@ export default function Dashboard() {
         {/* User Profile Section */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3 mb-4">
-            <div className="h-12 w-12 rounded-full bg-green-600 flex items-center justify-center">
-              <span className="text-white font-semibold text-lg">
-                {client.name?.charAt(0)?.toUpperCase() || 'U'}
-              </span>
+            <div className={`h-12 w-12 rounded-full ${roleColor} flex items-center justify-center`}>
+              <RoleIcon className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{client.name}</p>
-              <p className="text-sm text-gray-500 truncate">{client.email}</p>
+              <p className="font-semibold text-gray-900 truncate">{user.name}</p>
+              <p className="text-sm text-gray-500 truncate">{user.email}</p>
+              <Badge className={`mt-1 ${roleColor.replace('bg-', 'bg-')} text-white text-xs`}>
+                {user.role.replace(/_/g, ' ')}
+              </Badge>
             </div>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Building className="h-4 w-4" />
-              <span className="truncate">{client.company}</span>
-            </div>
-            {client.phone && (
+            {user.roleData && user.role === 'client' && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <Building className="h-4 w-4" />
+                <span className="truncate">{user.roleData.company_name}</span>
+              </div>
+            )}
+            {user.phone && (
               <div className="flex items-center gap-2 text-gray-600">
                 <Phone className="h-4 w-4" />
-                <span>{client.phone}</span>
+                <span>{user.phone}</span>
+              </div>
+            )}
+            {user.last_login && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <Calendar className="h-4 w-4" />
+                <span>Last login: {new Date(user.last_login).toLocaleDateString()}</span>
               </div>
             )}
           </div>
         </div>
 
         <div className="p-4 text-xl font-bold text-green-700 text-center border-b border-gray-200">
-          My Dashboard
+          {user.role.replace(/_/g, ' ')} Dashboard
         </div>
         
         <nav className="flex-1">
@@ -187,7 +327,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-semibold">{active}</h1>
             <p className="text-gray-600">
-              Welcome back, {client.name}! Here&apos;s what&apos;s happening today.
+              Welcome back, {user.name}! Here&apos;s what&apos;s happening today.
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -215,8 +355,8 @@ export default function Dashboard() {
             <Card className="shadow-lg border border-gray-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Your Profile
+                  <UserCog className="h-5 w-5" />
+                  Your Profile - {user.role.replace(/_/g, ' ')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -224,29 +364,55 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500">Full Name</label>
-                      <p className="text-lg font-semibold">{client.name}</p>
+                      <p className="text-lg font-semibold">{user.name}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500">Email</label>
-                      <p className="text-lg font-semibold">{client.email}</p>
+                      <p className="text-lg font-semibold">{user.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Role</label>
+                      <Badge className={`${roleColor.replace('bg-', 'bg-')} text-white`}>
+                        {user.role.replace(/_/g, ' ')}
+                      </Badge>
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Company</label>
-                      <p className="text-lg font-semibold">{client.company}</p>
-                    </div>
-                    {client.phone && (
+                    {user.role === 'client' && user.roleData && (
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Company</label>
+                          <p className="text-lg font-semibold">{user.roleData.company_name}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Industry</label>
+                          <p className="text-lg font-semibold">{user.roleData.industry || 'Not specified'}</p>
+                        </div>
+                      </>
+                    )}
+                    {user.role === 'project_manager' && user.roleData && (
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Department</label>
+                          <p className="text-lg font-semibold">{user.roleData.department}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Level</label>
+                          <p className="text-lg font-semibold">{user.roleData.manager_level}</p>
+                        </div>
+                      </>
+                    )}
+                    {user.phone && (
                       <div>
                         <label className="text-sm font-medium text-gray-500">Phone</label>
-                        <p className="text-lg font-semibold">{client.phone}</p>
+                        <p className="text-lg font-semibold">{user.phone}</p>
                       </div>
                     )}
-                    {client.created_at && (
+                    {user.created_at && (
                       <div>
                         <label className="text-sm font-medium text-gray-500">Member Since</label>
                         <p className="text-lg font-semibold">
-                          {new Date(client.created_at).toLocaleDateString()}
+                          {new Date(user.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     )}
@@ -257,43 +423,31 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Stats Cards Section */}
+        {/* Role-Specific Stats Cards Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <motion.div whileHover={{ y: -5 }}>
-            <Card className="shadow-lg border border-gray-200">
-              <CardHeader>
-                <CardTitle>Total Applications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-green-600">1,245</p>
-                <p className="text-gray-500 text-sm">+12% this month</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div whileHover={{ y: -5 }}>
-            <Card className="shadow-lg border border-gray-200">
-              <CardHeader>
-                <CardTitle>Active Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-blue-600">3,498</p>
-                <p className="text-gray-500 text-sm">+8% this month</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div whileHover={{ y: -5 }}>
-            <Card className="shadow-lg border border-gray-200">
-              <CardHeader>
-                <CardTitle>Pending Approvals</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-red-600">76</p>
-                <p className="text-gray-500 text-sm">-5% this month</p>
-              </CardContent>
-            </Card>
-          </motion.div>
+          {roleStats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div key={index} whileHover={{ y: -5 }}>
+                <Card className="shadow-lg border border-gray-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Icon className={`h-5 w-5 ${stat.color}`} />
+                      {stat.label}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                    <p className="text-gray-500 text-sm">
+                      {stat.label === "Active Projects" && "+12% this month"}
+                      {stat.label === "Active Users" && "+8% this month"}
+                      {stat.label === "Pending Approvals" && "-5% this month"}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Recent Activity Section */}

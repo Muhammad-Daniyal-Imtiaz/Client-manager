@@ -1,18 +1,56 @@
-// src/app/api/auth/signup/route.ts
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createAdminClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+
+// Role passwords from environment variables
+const ROLE_PASSWORDS = {
+  client: process.env.CLIENT_PASSWORD!,
+  project_manager: process.env.PROJECT_MANAGER_PASSWORD!,
+  full_stack_developer: process.env.FULL_STACK_DEVELOPER_PASSWORD!,
+  lead_full_stack_developer: process.env.LEAD_FULL_STACK_DEVELOPER_PASSWORD!,
+  admin: process.env.ADMIN_PASSWORD!,
+  seo_developer: process.env.SEO_DEVELOPER_PASSWORD!
+}
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name, company, phone } = await request.json()
+    const { email, password, name, role, rolePassword, ...additionalData } = await request.json()
 
-    if (!email || !password || !name || !company) {
+    // Validate required fields
+    if (!email || !password || !name || !role || !rolePassword) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
+    // Validate role
+    const validRoles = ['client', 'project_manager', 'full_stack_developer', 'lead_full_stack_developer', 'admin', 'seo_developer']
+    if (!validRoles.includes(role)) {
+      return NextResponse.json(
+        { error: 'Invalid role selected' },
+        { status: 400 }
+      )
+    }
+
+    // Verify role-specific password
+    const expectedPassword = ROLE_PASSWORDS[role as keyof typeof ROLE_PASSWORDS]
+    if (!expectedPassword || rolePassword !== expectedPassword) {
+      return NextResponse.json(
+        { error: 'Invalid role password. Please contact support.' },
+        { status: 401 }
+      )
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      )
+    }
+
+    // Validate password strength
     if (password.length < 6) {
       return NextResponse.json(
         { error: 'Password must be at least 6 characters' },
@@ -21,119 +59,141 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient()
+    const adminClient = await createAdminClient()
 
-    // First check if user already exists
-    const { data: existingUser, error: checkError } = await supabase
-      .from('clients')
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
       .select('id')
       .eq('email', email)
       .single()
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing user:', checkError)
-      return NextResponse.json(
-        { error: 'Server error during signup' },
-        { status: 500 }
-      )
-    }
-
     if (existingUser) {
       return NextResponse.json(
-        { error: 'email_exists' },
+        { error: 'User with this email already exists' },
         { status: 400 }
       )
     }
 
-    // Get the base URL from the request for dynamic redirect
-    const baseUrl = new URL(request.url).origin
-    
-    // Sign up the user
+    // Sign up the user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: name,
-          company: company,
-          phone: phone || null,
+          name,
+          role,
+          ...additionalData
         },
-        emailRedirectTo: `${baseUrl}/dashboard`,
-      },
+        emailRedirectTo: `${request.headers.get('origin')}/dashboard`
+      }
     })
 
     if (authError) {
       console.error('Auth signup error:', authError)
-      
-      if (authError.message.includes('already registered') || authError.code === 'user_already_exists') {
-        return NextResponse.json(
-          { error: 'email_exists' },
-          { status: 400 }
-        )
-      }
-      
-      if (authError.message.includes('password')) {
-        return NextResponse.json(
-          { error: 'weak_password' },
-          { status: 400 }
-        )
-      }
-      
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
       )
     }
 
-    if (authData.user) {
-      // Create client record in the database using the user's ID
-      const { error: clientError } = await supabase
-        .from('clients')
-        .insert([
-          {
-            id: authData.user.id, // Use the same ID as auth user
-            name: name,
-            email: email,
-            company: company,
-            phone: phone || null,
-            role: 'client',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ])
-
-      if (clientError) {
-        console.error('Error creating client record:', clientError)
-        // If client record fails, we should handle this gracefully
-        // The auth user exists but client record failed
-        return NextResponse.json(
-          { 
-            success: true,
-            message: 'Account created but there was an issue with profile setup. Please contact support.',
-            client: null
-          },
-          { status: 201 }
-        )
-      }
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: 'User creation failed' },
+        { status: 500 }
+      )
     }
 
-    // Return success response
-    return NextResponse.json({ 
+    // Create user record in users table
+    const { error: userError } = await adminClient
+      .from('users')
+      .insert([
+        {
+          id: authData.user.id,
+          email,
+          name,
+          role,
+          is_verified: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ])
+
+    if (userError) {
+      console.error('User creation error:', userError)
+      // Try to delete auth user if user creation fails
+      await adminClient.auth.admin.deleteUser(authData.user.id)
+      return NextResponse.json(
+        { error: 'Failed to create user profile' },
+        { status: 500 }
+      )
+    }
+
+    // Create role-specific data based on role
+    switch (role) {
+      case 'client':
+        await adminClient
+          .from('clients')
+          .insert([
+            {
+              id: authData.user.id,
+              company_name: additionalData.company_name || 'New Client',
+              company_size: additionalData.company_size || '1-10',
+              industry: additionalData.industry || 'Technology',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+        break
+      
+      case 'project_manager':
+        await adminClient
+          .from('project_managers')
+          .insert([
+            {
+              id: authData.user.id,
+              department: additionalData.department || 'Project Management',
+              manager_level: additionalData.manager_level || 'mid',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+        break
+      
+      case 'full_stack_developer':
+        await adminClient
+          .from('full_stack_developers')
+          .insert([
+            {
+              id: authData.user.id,
+              seniority_level: additionalData.seniority_level || 'mid',
+              tech_stack: additionalData.tech_stack || ['JavaScript', 'Python'],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+        break
+      
+      // Add other role cases here...
+      
+      default:
+        break
+    }
+
+    return NextResponse.json({
       success: true,
       message: authData.session 
         ? 'Signup successful! Redirecting...' 
-        : 'Please check your email to verify your account before signing in.',
-      client: authData.user ? {
+        : 'Please check your email to verify your account.',
+      user: {
         id: authData.user.id,
         email: authData.user.email,
-        name: name,
-        company: company,
-        phone: phone || null,
-        role: 'client',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } : null
+        name,
+        role,
+        is_verified: authData.user.email_confirmed_at !== null
+      }
     })
-    
+
   } catch (error: unknown) {
     console.error('Signup error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Signup failed'

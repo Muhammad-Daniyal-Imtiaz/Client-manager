@@ -1,4 +1,3 @@
-// src/app/api/auth/session/route.ts
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -9,29 +8,52 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ client: null }, { status: 200 })
+      return NextResponse.json({ user: null }, { status: 200 })
     }
 
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
+    // Get user with role-specific data
+    const { data: userData, error: userError } = await supabase
+      .from('users')
       .select('*')
       .eq('id', user.id)
       .single()
 
-    if (clientError && clientError.code !== 'PGRST116') {
-      console.error('Error fetching client data:', clientError)
+    if (userError) {
+      console.error('Error fetching user data:', userError)
+      return NextResponse.json({ user: null }, { status: 200 })
+    }
+
+    // Get role-specific data based on role
+    let roleData = null
+    switch (userData.role) {
+      case 'client':
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        roleData = clientData
+        break
+      
+      case 'project_manager':
+        const { data: pmData } = await supabase
+          .from('project_managers')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        roleData = pmData
+        break
+      
+      // Add other role cases...
+      
+      default:
+        break
     }
 
     return NextResponse.json({ 
-      client: client || {
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0],
-        company: user.user_metadata?.company || 'Unknown',
-        phone: user.user_metadata?.phone || null,
-        role: 'client',
-        created_at: user.created_at,
-        updated_at: user.updated_at
+      user: {
+        ...userData,
+        roleData
       }
     })
   } catch (error) {

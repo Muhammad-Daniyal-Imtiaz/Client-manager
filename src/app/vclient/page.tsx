@@ -759,7 +759,7 @@ export default function VClientPage(): JSX.Element {
         const response = await fetch('/api/auth/session');
         const data = await response.json();
         
-        if (response.ok && data.client) {
+        if (response.ok && data.user) {
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);

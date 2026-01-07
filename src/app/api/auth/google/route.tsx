@@ -7,7 +7,6 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const redirectTo = searchParams.get('redirectTo') || '/dashboard'
-    const role = searchParams.get('role') || 'client'
     
     // Use dynamic base URL from the request
     const baseUrl = new URL(request.url).origin
@@ -15,7 +14,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${baseUrl}/api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}&role=${encodeURIComponent(role)}`,
+        redirectTo: `${baseUrl}/api/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',

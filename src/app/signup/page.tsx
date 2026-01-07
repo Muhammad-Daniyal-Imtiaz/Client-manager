@@ -158,8 +158,11 @@ export default function SignupPage() {
     }
   };
 
-  const handleGoogleSignup = () => {
-    window.location.href = `/api/auth/google?role=${role}`;
+  const handleGoogleSignup = async () => {
+    // Save the selected role to session storage so it can be used after OAuth callback
+    sessionStorage.setItem('signup_role', role);
+    // Redirect to Google OAuth
+    window.location.href = '/api/auth/google?redirectTo=/dashboard';
   };
 
   if (!role || !roleInfo[role as keyof typeof roleInfo]) {

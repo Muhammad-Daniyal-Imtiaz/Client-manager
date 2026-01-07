@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Home,
@@ -39,6 +40,7 @@ interface UserData {
 }
 
 export default function ProjectManagerDashboard() {
+  const router = useRouter();
   const [active, setActive] = useState("Dashboard");
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,24 @@ export default function ProjectManagerDashboard() {
       window.location.href = '/role-selection';
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        router.push('/login');
+      }
+    } catch (err) {
+      console.error('Error logging out:', err);
+      // Still redirect to login if there's an error
+      router.push('/login');
     }
   };
 
@@ -142,6 +162,16 @@ export default function ProjectManagerDashboard() {
             </motion.div>
           ))}
         </nav>
+
+        <div className="border-t border-gray-200 p-4">
+          <Button
+            onClick={handleLogout}
+            className="w-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
       </aside>
 
       {/* Main Content */}

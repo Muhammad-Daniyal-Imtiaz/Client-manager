@@ -159,10 +159,8 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignup = async () => {
-    // Save the selected role to session storage so it can be used after OAuth callback
-    sessionStorage.setItem('signup_role', role);
-    // Redirect to Google OAuth
-    window.location.href = '/api/auth/google?redirectTo=/dashboard';
+    // Pass the selected role through the OAuth redirect
+    window.location.href = `/api/auth/google?redirectTo=/dashboard&role=${encodeURIComponent(role)}`;
   };
 
   if (!role || !roleInfo[role as keyof typeof roleInfo]) {

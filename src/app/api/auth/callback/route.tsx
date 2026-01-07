@@ -7,6 +7,7 @@ export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
     const redirectTo = requestUrl.searchParams.get('redirectTo') || '/dashboard'
+    const role = requestUrl.searchParams.get('role') || 'client'
 
     if (!code) {
       console.error('No code provided in callback')
@@ -36,54 +37,108 @@ export async function GET(request: Request) {
       return NextResponse.redirect(errorUrl)
     }
 
-    console.log('User authenticated:', session.user.email)
+    console.log('User authenticated:', session.user.email, 'Role:', role)
 
-    // Check if this is a new user and if we have a signup role
-    const { data: existingUser } = await adminClient
+    // Check if this is a new user
+    const { data: existingUser, error: checkError } = await adminClient
       .from('users')
       .select('id, role')
       .eq('id', session.user.id)
       .single()
 
-    // Get role from user metadata if available, or use the signup role
-    let signupRole = session.user.user_metadata?.role || 'client'
-    
-    // Use the service role to call the database function
-    const { data: dbResult, error: funcError } = await adminClient
-      .rpc('create_or_update_user_oauth', {
-        user_id: session.user.id,
-        user_email: session.user.email!,
-        user_name: session.user.user_metadata?.name || 
-                   session.user.user_metadata?.full_name || 
-                   session.user.email?.split('@')[0] || 
-                   'User',
-        user_role: existingUser ? null : signupRole, // Only set role for new users
-        user_avatar_url: session.user.user_metadata?.avatar_url || null
-      })
+    let userRole = role // Use the role from the signup
 
-    if (funcError) {
-      console.error('Database function error:', funcError)
-      // Don't fail the auth flow, just log the error
+    if (!existingUser) {
+      // New user - create them with the selected role
+      userRole = role
+
+      const { error: createError } = await adminClient
+        .from('users')
+        .insert({
+          id: session.user.id,
+          email: session.user.email!,
+          name: session.user.user_metadata?.name || 
+                session.user.user_metadata?.full_name || 
+                session.user.email?.split('@')[0] || 
+                'User',
+          role: role,
+          avatar_url: session.user.user_metadata?.avatar_url || null,
+          phone: session.user.user_metadata?.phone || null,
+          is_active: true,
+          is_verified: true,
+          last_login: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (createError) {
+        console.error('Error creating user:', createError)
+        // Don't fail - user might already exist from another concurrent request
+      }
+
+      // Create role-specific data
+      try {
+        switch (role) {
+          case 'client':
+            await adminClient.from('clients').insert({
+              id: session.user.id,
+              company_name: session.user.user_metadata?.name || session.user.email?.split('@')[0] + "'s Company"
+            }).single()
+            break
+          case 'project_manager':
+            await adminClient.from('project_managers').insert({
+              id: session.user.id,
+              department: 'Project Management'
+            }).single()
+            break
+          case 'full_stack_developer':
+            await adminClient.from('full_stack_developers').insert({
+              id: session.user.id,
+              seniority_level: 'mid'
+            }).single()
+            break
+          case 'lead_full_stack_developer':
+            await adminClient.from('lead_full_stack_developers').insert({
+              id: session.user.id,
+              team_size: 3
+            }).single()
+            break
+          case 'admin':
+            await adminClient.from('admins').insert({
+              id: session.user.id,
+              admin_level: 'moderator'
+            }).single()
+            break
+          case 'seo_developer':
+            await adminClient.from('seo_developers').insert({
+              id: session.user.id,
+              seo_specialization: ['On-page SEO']
+            }).single()
+            break
+        }
+      } catch (roleError) {
+        console.log('Note: Role-specific data creation skipped (might already exist):', roleError)
+      }
+    } else {
+      // Existing user - keep their role
+      userRole = existingUser.role
+
+      // Update last_login
+      await adminClient
+        .from('users')
+        .update({
+          last_login: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', session.user.id)
     }
 
-    if (dbResult) {
-      console.log('User creation/update result:', dbResult)
-    }
+    console.log('User session created with role:', userRole)
 
-    // Get the user's role for redirect
-    const { data: userData } = await adminClient
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-
-    const userRole = userData?.role || 'client'
-
-    // Redirect to dashboard with role info
+    // Redirect to dashboard
     const dashUrl = new URL(redirectTo, request.url)
     dashUrl.searchParams.set('role', userRole)
 
-    // Return response with Set-Cookie to finalize session
     const response = NextResponse.redirect(dashUrl)
     return response
   } catch (error) {

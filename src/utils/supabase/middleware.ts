@@ -27,6 +27,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  // Use getUser() instead of getSession() for secure authentication
   const {
     data: { user },
   } = await supabase.auth.getUser()

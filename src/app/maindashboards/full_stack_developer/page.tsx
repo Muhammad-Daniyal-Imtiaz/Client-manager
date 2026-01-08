@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Home,
@@ -25,6 +25,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 interface UserData {
   id: string;
@@ -39,21 +40,37 @@ interface UserData {
   roleData?: any;
 }
 
-export default function ProjectManagerDashboard() {
+interface MenuItem {
+  name: string;
+  icon: any;
+  path: string;
+}
+
+export default function ProjectManagerDashboard({ children }: { children?: React.ReactNode }) {
   const router = useRouter();
-  const [active, setActive] = useState("Dashboard");
+  const pathname = usePathname(); // Get current path
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const menuItems = [
-    { name: "Dashboard", icon: Home },
-    { name: "Projects", icon: FileText },
-    { name: "Team", icon: Users },
-    { name: "Calendar", icon: Calendar },
-    { name: "Tasks", icon: CheckCircle },
-    { name: "Reports", icon: BarChart3 },
-    { name: "Settings", icon: Settings },
+  const menuItems: MenuItem[] = [
+    { name: "Dashboard", icon: Home, path: "/project-manager/dashboard" },
+    { name: "Projects Progress", icon: FileText, path: "/maindashboards/full_stack_developer/Projects_report" },
+    { name: "Team", icon: Users, path: "/project-manager/team" },
+    { name: "Calendar", icon: Calendar, path: "/project-manager/calendar" },
+    { name: "Tasks", icon: CheckCircle, path: "/project-manager/tasks" },
+    { name: "Reports", icon: BarChart3, path: "/project-manager/reports" },
+    { name: "Settings", icon: Settings, path: "/project-manager/settings" },
   ];
+
+  // Helper function to check if a menu item is active
+  const isMenuItemActive = (itemPath: string) => {
+    // Exact match for dashboard
+    if (itemPath === "/project-manager/dashboard" && pathname === "/project-manager/dashboard") {
+      return true;
+    }
+    // For other pages, check if current path starts with item path
+    return pathname?.startsWith(itemPath) && itemPath !== "/project-manager/dashboard";
+  };
 
   useEffect(() => {
     fetchUserData();
@@ -79,7 +96,6 @@ export default function ProjectManagerDashboard() {
 
   const handleLogout = async () => {
     try {
-      // Sign out from Supabase
       const response = await fetch('/api/auth/signout', {
         method: 'POST',
         credentials: 'include',
@@ -90,7 +106,6 @@ export default function ProjectManagerDashboard() {
       }
     } catch (err) {
       console.error('Error logging out:', err);
-      // Still redirect to login if there's an error
       router.push('/login');
     }
   };
@@ -112,8 +127,8 @@ export default function ProjectManagerDashboard() {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-purple-50 via-gray-100 to-pink-100 text-gray-900">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white/90 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col">
+      {/* Fixed Sidebar */}
+      <aside className="w-64 bg-white/90 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col fixed h-full">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
@@ -145,22 +160,29 @@ export default function ProjectManagerDashboard() {
           Project Manager
         </div>
         
-        <nav className="flex-1">
-          {menuItems.map((item) => (
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              key={item.name}
-              className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${
-                active === item.name
-                  ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
-                  : "text-gray-700 hover:bg-purple-50"
-              }`}
-              onClick={() => setActive(item.name)}
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="font-medium">{item.name}</span>
-            </motion.div>
-          ))}
+        <nav className="flex-1 overflow-y-auto">
+          {menuItems.map((item) => {
+            const isActive = isMenuItemActive(item.path);
+            return (
+              <Link href={item.path} key={item.name} legacyBehavior>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${
+                    isActive
+                      ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
+                      : "text-gray-700 hover:bg-purple-50"
+                  }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span className="font-medium">{item.name}</span>
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 rounded-full bg-white/80 animate-pulse" />
+                  )}
+                </motion.div>
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="border-t border-gray-200 p-4">
@@ -174,8 +196,8 @@ export default function ProjectManagerDashboard() {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      {/* Main Content with padding for fixed sidebar */}
+      <main className="flex-1 p-8 ml-64 overflow-y-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Project Dashboard</h1>
@@ -301,6 +323,45 @@ export default function ProjectManagerDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Links */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {menuItems.slice(1, 4).map((item) => {
+            const isActive = isMenuItemActive(item.path);
+            return (
+              <Link key={item.name} href={item.path}>
+                <Card className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${
+                  isActive ? 'ring-2 ring-purple-500' : ''
+                }`}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900">{item.name}</p>
+                        <p className="text-sm text-gray-600 mt-1">View and manage</p>
+                      </div>
+                      <div className={`p-3 rounded-lg ${
+                        isActive 
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-600' 
+                          : 'bg-gradient-to-r from-purple-100 to-pink-100'
+                      }`}>
+                        <item.icon className={`h-6 w-6 ${
+                          isActive ? 'text-white' : 'text-purple-600'
+                        }`} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Page Content */}
+        {children && (
+          <div className="mt-8">
+            {children}
+          </div>
+        )}
       </main>
     </div>
   );

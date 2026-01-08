@@ -70,7 +70,7 @@ export default function DashboardRedirect() {
   const redirectBasedOnRole = (userData: UserData) => {
     switch (userData.role) {
       case 'client':
-        router.push('/dashboard/client');
+        router.push('/maindashboards/Client');
         break;
       case 'project_manager':
         router.push('/dashboard/project-manager');
@@ -82,7 +82,7 @@ export default function DashboardRedirect() {
         router.push('/maindashboards/full_stack_developer');
         break;
       case 'admin':
-        router.push('/dashboard/admin');
+        router.push('/maindashboards/Admin');
         break;
       case 'seo_developer':
         router.push('/dashboard/seo');

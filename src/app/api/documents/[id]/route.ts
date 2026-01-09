@@ -40,7 +40,7 @@ export async function GET(
 
     const canView = userData?.role === 'admin' || 
                     document.client_id === user.id || 
-                    user.id === any(document.shared_with)
+                    document.shared_with?.includes(user.id)
 
     if (!canView) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
@@ -115,7 +115,7 @@ export async function PUT(
 
     if (description !== undefined) updateData.description = description
     if (projectName !== undefined) updateData.project_name = projectName
-    if (tags !== undefined) updateData.tags = Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim())
+    if (tags !== undefined) updateData.tags = Array.isArray(tags) ? tags : tags.split(',').map((tag: string) => tag.trim())
     if (isShared !== undefined) updateData.is_shared = isShared
 
     const { data: document, error } = await adminClient

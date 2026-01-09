@@ -1,7 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
-// In Next.js 14, params is a Promise and needs to be awaited
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +18,7 @@ export async function GET(
     // Get document including file_path
     const { data: document, error: docError } = await supabase
       .from('client_documents')
-      .select('file_path, client_id, shared_with')
+      .select('file_path, client_id, shared_with, file_name, mime_type, file_size')
       .eq('id', id)
       .single()
 
@@ -43,41 +42,67 @@ export async function GET(
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
     }
 
-    // Verify file exists in storage
-    const { data: fileList } = await supabase
-      .storage
-      .from('client_project_documents')
-      .list(document.file_path.split('/').slice(0, -1).join('/'))
-
-    if (!fileList || fileList.length === 0) {
-      console.error('File not found in storage at path:', document.file_path)
-      return NextResponse.json({ error: 'File not found in storage' }, { status: 404 })
+    // Extract the path within the bucket
+    let storagePath = document.file_path
+    if (storagePath.startsWith('client_project_documents/')) {
+      storagePath = storagePath.replace('client_project_documents/', '')
     }
+
+    console.log('Download request:', {
+      documentId: id,
+      storagePath,
+      userId: user.id,
+      userRole: userData?.role
+    })
 
     // Generate signed URL (valid for 5 minutes)
     const { data: signedUrl, error: urlError } = await supabase
       .storage
       .from('client_project_documents')
-      .createSignedUrl(document.file_path, 300) // 5 minutes
+      .createSignedUrl(storagePath, 300)
 
-    if (urlError) {
+    if (urlError || !signedUrl) {
       console.error('Signed URL error:', urlError)
-      // Try to get public URL if bucket is public
+      
+      // Fallback to public URL if available
       const { data: publicUrl } = supabase
         .storage
         .from('client_project_documents')
-        .getPublicUrl(document.file_path)
+        .getPublicUrl(storagePath)
       
-      if (publicUrl) {
-        return NextResponse.json({ url: publicUrl.publicUrl })
+      if (publicUrl?.publicUrl) {
+        return NextResponse.json({ 
+          url: publicUrl.publicUrl,
+          fileInfo: {
+            name: document.file_name,
+            size: document.file_size,
+            type: document.mime_type
+          }
+        })
       }
       
-      return NextResponse.json({ error: 'Failed to generate download link' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Failed to generate download link',
+        details: urlError?.message || 'Unknown error'
+      }, { status: 500 })
     }
 
-    return NextResponse.json({ url: signedUrl.signedUrl })
+    return NextResponse.json({ 
+      url: signedUrl.signedUrl,
+      fileInfo: {
+        name: document.file_name,
+        size: document.file_size,
+        type: document.mime_type,
+        path: document.file_path
+      },
+      expiresIn: 300
+    })
   } catch (error) {
     console.error('Download API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }

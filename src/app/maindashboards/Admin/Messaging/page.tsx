@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/lib/supabase';
 
 interface User {
   id: string;
@@ -123,6 +124,75 @@ export default function MessagingSystem() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Setup realtime subscription for messages
+  useEffect(() => {
+    if (!selectedUser || !currentUser) return;
+
+    // Subscribe to message changes in this conversation
+    const messageFilter = `or(and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id}))`;
+    
+    const channel = supabase
+      .channel(`messages_${currentUser.id}_${selectedUser.id}`, {
+        config: {
+          broadcast: { self: true }
+        }
+      })
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: messageFilter
+        },
+        (payload: any) => {
+          const newMessage = payload.new as Message;
+          // Check if message already exists in state (avoid duplicates)
+          setMessages(prev => {
+            if (prev.some(msg => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
+          // Ensure scroll to bottom after new message
+          setTimeout(() => scrollToBottom(), 100);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: messageFilter
+        },
+        (payload: any) => {
+          setMessages(prev => prev.map(msg => 
+            msg.id === payload.new.id ? { ...msg, ...payload.new } : msg
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'messages',
+          filter: messageFilter
+        },
+        (payload: any) => {
+          setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedUser, currentUser]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -212,9 +282,23 @@ export default function MessagingSystem() {
       const data = await response.json();
       
       if (response.ok) {
-        setMessages(prev => [data.message, ...prev]);
+        // Don't add message here - let realtime subscription handle it
+        // But if realtime is not working, we can add it with a small delay
+        const sentMessage = newMessage;
         setNewMessage('');
         setSubject('');
+        
+        // Add message to state (realtime will also add it, so we check for duplicates)
+        setMessages(prev => {
+          if (prev.some(msg => msg.id === data.message.id)) {
+            return prev;
+          }
+          return [...prev, data.message];
+        });
+        
+        // Scroll to bottom after message is sent
+        setTimeout(() => scrollToBottom(), 100);
+        
         fetchConversations(); // Refresh conversations list
         
         // If this user wasn't in conversations, add them
@@ -224,7 +308,7 @@ export default function MessagingSystem() {
             name: selectedUser.name,
             email: selectedUser.email,
             avatar_url: selectedUser.avatar_url,
-            last_message: newMessage,
+            last_message: sentMessage,
             last_message_time: new Date().toISOString(),
             unread_count: 0
           }, ...prev]);
@@ -275,6 +359,29 @@ export default function MessagingSystem() {
       }
     } catch (error) {
       console.error('Error marking message as read:', error);
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Remove message from local state
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      } else {
+        const data = await response.json();
+        console.error('Error deleting message:', data.error);
+        alert(`Failed to delete message: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert('Failed to delete message. Please try again.');
     }
   };
 
@@ -650,37 +757,53 @@ export default function MessagingSystem() {
                           </div>
                         )}
 
-                        <div className={`flex ${isCurrentUserSender ? 'justify-end' : 'justify-start'} mb-2`}>
-                          <div className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${
-                            isCurrentUserSender
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-none'
-                              : 'bg-white border border-gray-200 text-gray-900 rounded-bl-none'
-                          }`}>
-                            {!isCurrentUserSender && (
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-medium">{message.sender?.name || 'Unknown'}</span>
-                                <span className="text-xs opacity-75">
-                                  {formatTime(message.created_at)}
-                                </span>
-                              </div>
-                            )}
-                            <p className="whitespace-pre-wrap break-words">{message.message}</p>
-                            <div className="flex items-center justify-end gap-1 mt-2">
-                              <span className="text-xs opacity-75">
-                                {isCurrentUserSender ? formatTime(message.created_at) : ''}
-                              </span>
-                              {isCurrentUserSender && (
-                                <div className="ml-1">
-                                  {message.status === 'read' ? (
-                                    <CheckCheck className="h-3 w-3 text-blue-200" />
-                                  ) : message.status === 'delivered' ? (
-                                    <CheckCircle className="h-3 w-3 text-blue-200" />
-                                  ) : (
-                                    <CheckCircle className="h-3 w-3 opacity-50" />
-                                  )}
+                        <div className={`flex ${isCurrentUserSender ? 'justify-end' : 'justify-start'} mb-2 group`}>
+                          <div className="flex items-end gap-2">
+                            <div className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${
+                              isCurrentUserSender
+                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-none'
+                                : 'bg-white border border-gray-200 text-gray-900 rounded-bl-none'
+                            }`}>
+                              {!isCurrentUserSender && (
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-medium">{message.sender?.name || 'Unknown'}</span>
+                                  <span className="text-xs opacity-75">
+                                    {formatTime(message.created_at)}
+                                  </span>
                                 </div>
                               )}
+                              <p className="whitespace-pre-wrap break-words">{message.message}</p>
+                              <div className="flex items-center justify-end gap-1 mt-2">
+                                <span className="text-xs opacity-75">
+                                  {isCurrentUserSender ? formatTime(message.created_at) : ''}
+                                </span>
+                                {isCurrentUserSender && (
+                                  <div className="ml-1">
+                                    {message.status === 'read' ? (
+                                      <CheckCheck className="h-3 w-3 text-blue-200" />
+                                    ) : message.status === 'delivered' ? (
+                                      <CheckCircle className="h-3 w-3 text-blue-200" />
+                                    ) : (
+                                      <CheckCircle className="h-3 w-3 opacity-50" />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
+                            {isCurrentUserSender && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to delete this message?')) {
+                                    deleteMessage(message.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -44,7 +44,7 @@ export async function GET(request: Request) {
           receiver:receiver_id(name, avatar_url)
         `)
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${conversationWith}),and(sender_id.eq.${conversationWith},receiver_id.eq.${user.id})`)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(parseInt(limit))
         .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1)
 

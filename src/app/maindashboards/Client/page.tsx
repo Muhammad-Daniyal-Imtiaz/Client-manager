@@ -89,11 +89,11 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
   ]);
 
   const menuItems: MenuItem[] = [
-    { name: "Dashboard", icon: Home, path: "/client/dashboard" },
+    { name: "Documents", icon: Home, path: "/maindashboards/Client/DocumentManager" },
     { name: "My Projects Progress", icon: ShoppingBag, path: "/maindashboards/Client/vclient/" },
-    { name: "Invoices", icon: CreditCard, path: "/client/invoices" },
+    { name: "Messages", icon: CreditCard, path: "/maindashboards/Client/Messaging/" },
     { name: "Orders", icon: Package, path: "/client/orders" },
-    { name: "Messages", icon: MessageSquare, path: "/client/messages" },
+    // { name: "Messages", icon: MessageSquare, path: "/client/messages" },
     { name: "Support", icon: HelpCircle, path: "/client/support" },
     { name: "Profile", icon: User, path: "/client/profile" },
     { name: "Settings", icon: Settings, path: "/client/settings" },

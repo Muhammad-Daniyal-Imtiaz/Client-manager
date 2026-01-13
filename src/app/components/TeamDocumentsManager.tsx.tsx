@@ -572,7 +572,7 @@ export default function TeamDocumentsManager() {
             <FileText className="h-12 w-12 text-gray-400 mx-auto" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No team documents</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {Object.values(filters).some(v => v && v !== false) 
+              {Object.values(filters).some(v => v && v== false) 
                 ? 'No documents match your filters' 
                 : 'Be the first to upload a team document!'}
             </p>

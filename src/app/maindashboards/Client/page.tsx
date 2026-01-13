@@ -92,11 +92,11 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
     { name: "Documents", icon: Home, path: "/maindashboards/Client/DocumentManager" },
     { name: "My Projects Progress", icon: ShoppingBag, path: "/maindashboards/Client/vclient/" },
     { name: "Messages", icon: CreditCard, path: "/maindashboards/Client/Messaging/" },
-    { name: "Orders", icon: Package, path: "/client/orders" },
+    // { name: "Orders", icon: Package, path: "/client/orders" },
     // { name: "Messages", icon: MessageSquare, path: "/client/messages" },
-    { name: "Support", icon: HelpCircle, path: "/client/support" },
-    { name: "Profile", icon: User, path: "/client/profile" },
-    { name: "Settings", icon: Settings, path: "/client/settings" },
+    // { name: "Support", icon: HelpCircle, path: "/client/support" },
+    // { name: "Profile", icon: User, path: "/client/profile" },
+    // { name: "Settings", icon: Settings, path: "/client/settings" },
   ];
 
   const isMenuItemActive = (itemPath: string) => {

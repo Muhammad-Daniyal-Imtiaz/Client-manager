@@ -67,15 +67,15 @@ export default function AdminDashboard({ children }: { children?: React.ReactNod
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", icon: Home, path: "/admin/dashboard" },
-    { name: "User Management", icon: Users, path: "/admin/users" },
-    { name: "System Settings", icon: Settings, path: "/admin/settings" },
-    { name: "Security", icon: Shield, path: "/admin/security" },
-    { name: "Database", icon: Database, path: "/admin/database" },
-    { name: "Analytics", icon: BarChart, path: "/admin/analytics" },
-    { name: "Billing", icon: CreditCard, path: "/admin/billing" },
-    { name: "Logs", icon: FileText, path: "/admin/logs" },
-    { name: "Infrastructure", icon: Server, path: "/admin/infrastructure" },
-    { name: "API Management", icon: Key, path: "/admin/api" },
+    { name: "Documents-upload", icon: Users, path: "/maindashboards/Admin/AdminDocumentsManager" },
+    { name: "Messaging", icon: Settings, path: "/maindashboards/Admin/Messaging" },
+    // { name: "Security", icon: Shield, path: "/admin/security" },
+     { name: "Team-Documents", icon: Database, path: "/maindashboards/Admin/team-documents" },
+    // { name: "Analytics", icon: BarChart, path: "/admin/analytics" },
+    // { name: "Billing", icon: CreditCard, path: "/admin/billing" },
+    // { name: "Logs", icon: FileText, path: "/admin/logs" },
+    // { name: "Infrastructure", icon: Server, path: "/admin/infrastructure" },
+    // { name: "API Management", icon: Key, path: "/admin/api" },
   ];
 
   const isMenuItemActive = (itemPath: string) => {

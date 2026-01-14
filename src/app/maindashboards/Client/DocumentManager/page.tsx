@@ -19,7 +19,7 @@ interface Document {
   download_url: string
   client_name: string
   company_name: string
-}
+}n  
 
 interface User {
   id: string

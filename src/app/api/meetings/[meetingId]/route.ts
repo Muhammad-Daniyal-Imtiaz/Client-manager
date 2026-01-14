@@ -2,6 +2,32 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
+interface UserData {
+  id: string
+  name: string
+  email: string
+  role: string
+}
+
+interface ParticipantRecord {
+  id: string
+  role: string
+  invitation_status: string
+  attendance_status: string | null
+  responded_at: string | null
+  users: UserData
+}
+
+interface TransformedParticipant {
+  id: string
+  name: string
+  email: string
+  role: string
+  invitation_status: string
+  attendance_status: string | null
+  responded_at: string | null
+}
+
 export async function GET(
   request: Request,
   { params }: { params: { meetingId: string } }
@@ -34,15 +60,15 @@ export async function GET(
       `)
       .eq('meeting_id', meetingId)
       .order('role', { ascending: false })
-      .order('users(name)')
+      .order('users(name)') as { data: ParticipantRecord[] | null; error: any }
 
     if (error) {
       console.error('Error fetching participants:', error)
       return NextResponse.json({ participants: [] })
     }
 
-    // Transform the data
-    const transformedParticipants = (participants || []).map(p => ({
+    // Transform the data with proper typing
+    const transformedParticipants: TransformedParticipant[] = (participants || []).map((p: ParticipantRecord) => ({
       id: p.users.id,
       name: p.users.name,
       email: p.users.email,
@@ -56,6 +82,6 @@ export async function GET(
 
   } catch (error: any) {
     console.error('Error in participants API:', error)
-    return NextResponse.json({ participants: [] })
+    return NextResponse.json({ participants: [] }, { status: 500 })
   }
 }

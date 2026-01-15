@@ -39,6 +39,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MessagingSystem from "./Messaging/page";
 import AdminTeamDocumentsPage from "./team-documents/page";
 import AdminDocumentsManager from "./AdminDocumentsManager/page";
+import VClientPage from "../full_stack_developer/Projects_report/page";
+import ProjectsHome from "./Projects/page";
+import ProjectProgress from "./Projects/Project_Progress/page";
 
 interface UserData {
   id: string;
@@ -72,11 +75,15 @@ export default function AdminDashboard({ children }: { children?: React.ReactNod
     uptime: 99.8
   });
 
+
+
   const menuItems: MenuItem[] = [
     { name: "Dashboard", icon: Home, path: "dashboard" },
     { name: "Documents-upload", icon: Users, path: "documents" },
     { name: "Messaging", icon: Settings, path: "messaging" },
     { name: "Team-Documents", icon: Database, path: "team-documents" },
+    { name: "Projects", icon: FileText, path: "projects" },
+    { name: "Project Progress", icon: BarChart, path: "project-progress" },
   ];
 
   const isMenuItemActive = (itemPath: string) => {
@@ -97,6 +104,10 @@ export default function AdminDashboard({ children }: { children?: React.ReactNod
         return <MessagingSystem />;
       case "team-documents":
         return <AdminTeamDocumentsPage />;
+      case "projects":
+        return <ProjectsHome />;
+      case "project-progress":
+        return <ProjectProgress />;
       default:
         return <DashboardContent systemHealth={systemHealth} />;
     }

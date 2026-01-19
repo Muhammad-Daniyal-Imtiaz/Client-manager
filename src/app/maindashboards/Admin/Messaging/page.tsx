@@ -127,62 +127,56 @@ export default function MessagingSystem() {
 
   // Setup realtime subscription for messages
   useEffect(() => {
-    if (!selectedUser || !currentUser) return;
+    if (!currentUser) return;
 
-    // Subscribe to message changes in this conversation
-    const messageFilter = `or(and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id}))`;
+    console.log('Setting up realtime subscription for user:', currentUser.id);
 
+    // Subscribe to all changes in the messages table
+    // We filter in JS to ensure we handle messages for any conversation (for sidebar updates)
     const channel = supabase
-      .channel(`messages_${currentUser.id}_${selectedUser.id}`, {
-        config: {
-          broadcast: { self: true }
-        }
-      })
+      .channel(`db-messages-${currentUser.id}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to INSERT, UPDATE, DELETE
           schema: 'public',
-          table: 'messages',
-          filter: messageFilter
+          table: 'messages'
         },
         (payload: any) => {
-          const newMessage = payload.new as Message;
-          // Check if message already exists in state (avoid duplicates)
-          setMessages(prev => {
-            if (prev.some(msg => msg.id === newMessage.id)) {
-              return prev;
+          console.log('Realtime payload received:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as Message;
+
+            // Only add to messages list if it belongs to current conversation
+            if (selectedUser && (
+              (newMessage.sender_id === currentUser.id && newMessage.receiver_id === selectedUser.id) ||
+              (newMessage.sender_id === selectedUser.id && newMessage.receiver_id === currentUser.id)
+            )) {
+              setMessages(prev => {
+                if (prev.some(msg => msg.id === newMessage.id)) return prev;
+                return [...prev, newMessage];
+              });
+              setTimeout(() => scrollToBottom(), 100);
             }
-            return [...prev, newMessage];
-          });
-          // Ensure scroll to bottom after new message
-          setTimeout(() => scrollToBottom(), 100);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: messageFilter
-        },
-        (payload: any) => {
-          setMessages(prev => prev.map(msg =>
-            msg.id === payload.new.id ? { ...msg, ...payload.new } : msg
-          ));
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'messages',
-          filter: messageFilter
-        },
-        (payload: any) => {
-          setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+
+            // Always update conversations list regardless of who it's with
+            updateConversationsWithNewMessage(newMessage);
+          }
+          else if (payload.eventType === 'UPDATE') {
+            const updatedMsg = payload.new as Message;
+            if (selectedUser && (
+              (updatedMsg.sender_id === currentUser.id && updatedMsg.receiver_id === selectedUser.id) ||
+              (updatedMsg.sender_id === selectedUser.id && updatedMsg.receiver_id === currentUser.id)
+            )) {
+              setMessages(prev => prev.map(msg =>
+                msg.id === updatedMsg.id ? { ...msg, ...updatedMsg } : msg
+              ));
+            }
+          }
+          else if (payload.eventType === 'DELETE') {
+            setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+          }
         }
       )
       .subscribe((status) => {
@@ -190,9 +184,43 @@ export default function MessagingSystem() {
       });
 
     return () => {
+      console.log('Removing realtime channel');
       supabase.removeChannel(channel);
     };
-  }, [selectedUser, currentUser]);
+  }, [selectedUser?.id, currentUser?.id]);
+
+  const updateConversationsWithNewMessage = (newMessage: Message) => {
+    setConversations(prev => {
+      const otherUserId = newMessage.sender_id === currentUser?.id
+        ? newMessage.receiver_id
+        : newMessage.sender_id;
+
+      const existingConvIndex = prev.findIndex(c => c.user_id === otherUserId);
+
+      if (existingConvIndex > -1) {
+        const updatedConversations = [...prev];
+        const existingConv = updatedConversations[existingConvIndex];
+
+        updatedConversations[existingConvIndex] = {
+          ...existingConv,
+          last_message: newMessage.message,
+          last_message_time: newMessage.created_at,
+          unread_count: newMessage.receiver_id === currentUser?.id && newMessage.status === 'sent'
+            ? existingConv.unread_count + 1
+            : existingConv.unread_count
+        };
+
+        // Move to top
+        const conv = updatedConversations.splice(existingConvIndex, 1)[0];
+        return [conv, ...updatedConversations];
+      } else {
+        // If it's a new conversation, we might want to refetch or manually add
+        // For now, let's just trigger a refetch of conversations to be safe
+        fetchConversations();
+        return prev;
+      }
+    });
+  };
 
   const fetchCurrentUser = async () => {
     try {
@@ -262,7 +290,10 @@ export default function MessagingSystem() {
   };
 
   const sendMessage = async () => {
-    if (!selectedUser || !newMessage.trim() || sending) return;
+    if (!selectedUser || !newMessage.trim() || sending || !currentUser) return;
+
+    const messageText = newMessage.trim();
+    const subjectText = subject.trim();
 
     try {
       setSending(true);
@@ -274,45 +305,20 @@ export default function MessagingSystem() {
         body: JSON.stringify({
           receiver_id: selectedUser.id,
           receiver_email: selectedUser.email,
-          subject: subject,
-          message: newMessage,
+          subject: subjectText,
+          message: messageText,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Don't add message here - let realtime subscription handle it
-        // But if realtime is not working, we can add it with a small delay
-        const sentMessage = newMessage;
         setNewMessage('');
         setSubject('');
 
-        // Add message to state (realtime will also add it, so we check for duplicates)
-        setMessages(prev => {
-          if (prev.some(msg => msg.id === data.message.id)) {
-            return prev;
-          }
-          return [...prev, data.message];
-        });
-
-        // Scroll to bottom after message is sent
-        setTimeout(() => scrollToBottom(), 100);
-
-        fetchConversations(); // Refresh conversations list
-
-        // If this user wasn't in conversations, add them
-        if (!conversations.some(conv => conv.user_id === selectedUser.id)) {
-          setConversations(prev => [{
-            user_id: selectedUser.id,
-            name: selectedUser.name,
-            email: selectedUser.email,
-            avatar_url: selectedUser.avatar_url,
-            last_message: sentMessage,
-            last_message_time: new Date().toISOString(),
-            unread_count: 0
-          }, ...prev]);
-        }
+        // The realtime subscription will handle adding the message to state
+        // But we update sidebar immediately for better UX
+        updateConversationsWithNewMessage(data.message);
       } else {
         console.error('Error sending message:', data.error);
         alert(`Failed to send message: ${data.error}`);

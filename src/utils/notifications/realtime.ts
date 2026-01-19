@@ -15,7 +15,7 @@ interface MeetingNotification {
   is_sent: boolean
   sent_at: string | null
   created_at: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 interface MeetingUpdate {
@@ -69,13 +69,14 @@ class NotificationManager {
           }
         }
       )
-      .on('error', (error: Error) => {
-        console.error('Realtime subscription error:', error)
-        this.listeners.forEach(listener => {
-          listener.onError?.(error)
-        })
+      .subscribe((status, error) => {
+        if (error) {
+          console.error('Realtime subscription error:', error)
+          this.listeners.forEach(listener => {
+            listener.onError?.(error)
+          })
+        }
       })
-      .subscribe()
 
     this.channels.push(notificationChannel)
 
@@ -89,7 +90,7 @@ class NotificationManager {
           schema: 'public',
           table: 'meetings'
         },
-        (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           // Notify about meeting updates
           const newData = payload.new as MeetingUpdate | null
           const oldData = payload.old as MeetingUpdate | null
@@ -109,13 +110,14 @@ class NotificationManager {
           }
         }
       )
-      .on('error', (error: Error) => {
-        console.error('Meeting updates subscription error:', error)
-        this.listeners.forEach(listener => {
-          listener.onError?.(error)
-        })
+      .subscribe((status, error) => {
+        if (error) {
+          console.error('Meeting updates subscription error:', error)
+          this.listeners.forEach(listener => {
+            listener.onError?.(error)
+          })
+        }
       })
-      .subscribe()
 
     this.channels.push(meetingUpdatesChannel)
 

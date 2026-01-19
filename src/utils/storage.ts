@@ -17,22 +17,22 @@ export async function uploadClientDocument(
   } = {}
 ): Promise<{
   success: boolean
-  document: any
+  document: Record<string, unknown>
   storagePath: string
   databaseFilePath: string
 }> {
   try {
-    const supabase = await createClient()
+    // const supabase = await createClient() // Removed unused variable
     const adminSupabase = await createAdminClient()
 
     // Generate file path - CRITICAL: Don't include bucket name in the path
     const timestamp = Date.now()
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
     const uniqueFileName = `${timestamp}_${safeFileName}`
-    
+
     // THIS IS THE KEY: Storage path should NOT include bucket name
     const storagePath = `${userId}/${uniqueFileName}`
-    
+
     // Database stores full path for reference
     const databaseFilePath = `client_project_documents/${storagePath}`
 
@@ -220,9 +220,9 @@ export async function getDocumentDownloadUrl(
       .eq('id', userId)
       .single()
 
-    const canDownload = userData?.role === 'admin' || 
-                        document.client_id === userId || 
-                        (document.shared_with && document.shared_with.includes(userId))
+    const canDownload = userData?.role === 'admin' ||
+      document.client_id === userId ||
+      (document.shared_with && document.shared_with.includes(userId))
 
     if (!canDownload) {
       throw new Error('Permission denied')
@@ -279,7 +279,7 @@ export async function updateDocumentMetadata(
   }
 ): Promise<{
   success: boolean
-  document: any
+  document: Record<string, unknown>
 }> {
   try {
     const supabase = await createClient()
@@ -310,7 +310,7 @@ export async function updateDocumentMetadata(
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updated_by: userId,
       updated_at: new Date().toISOString()
     }
@@ -355,7 +355,7 @@ export async function updateDocumentMetadata(
 export async function listClientDocuments(
   clientId: string | null = null,
   userId: string
-): Promise<any[]> {
+): Promise<unknown[]> {
   try {
     const supabase = await createClient()
 
@@ -386,7 +386,7 @@ export async function listClientDocuments(
 
     // Add download URLs to each document
     const documentsWithUrls = await Promise.all(
-      documents.map(async (doc: any) => {
+      documents.map(async (doc: any) => { // Use any as documents from RPC have complex structure
         try {
           const storagePath = doc.file_path.replace('client_project_documents/', '')
           const { data: signedUrl } = await supabase

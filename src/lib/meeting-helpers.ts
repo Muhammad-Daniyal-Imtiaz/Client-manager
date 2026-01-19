@@ -11,7 +11,7 @@ export interface CreateMeetingPayload {
   end_time?: string
   timezone?: string
   notes?: string
-  agenda?: any
+  agenda?: Record<string, unknown> | null
   participants: string[]
 }
 
@@ -24,7 +24,7 @@ export interface UpdateMeetingPayload {
   meeting_link?: string
   status?: 'scheduled' | 'in-progress' | 'completed' | 'cancelled' | 'rescheduled'
   notes?: string
-  agenda?: any
+  agenda?: Record<string, unknown> | null
 }
 
 /**
@@ -33,8 +33,8 @@ export interface UpdateMeetingPayload {
 export async function createMeeting(payload: CreateMeetingPayload) {
   const normalizedPayload = {
     ...payload,
-    scheduled_date: typeof payload.scheduled_date === 'string' 
-      ? payload.scheduled_date 
+    scheduled_date: typeof payload.scheduled_date === 'string'
+      ? payload.scheduled_date
       : format(payload.scheduled_date, 'yyyy-MM-dd')
   }
 
@@ -86,7 +86,8 @@ export async function updateMeeting(meetingId: string, payload: UpdateMeetingPay
  */
 export async function cancelMeeting(meetingId: string, reason?: string) {
   return updateMeeting(meetingId, {
-    status: 'cancelled'
+    status: 'cancelled',
+    notes: reason
   })
 }
 
@@ -159,7 +160,7 @@ export function isMeetingStartingSoon(date: string, time: string): boolean {
     const [hours, minutes] = time.split(':').map(Number)
     const meetingDateTime = new Date(date)
     meetingDateTime.setHours(hours, minutes, 0, 0)
-    
+
     const diffInMinutes = (meetingDateTime.getTime() - now.getTime()) / (1000 * 60)
     return diffInMinutes > 0 && diffInMinutes <= 15
   } catch {
@@ -176,15 +177,15 @@ export function getTimeUntilMeeting(date: string, time: string): string {
     const [hours, minutes] = time.split(':').map(Number)
     const meetingDateTime = new Date(date)
     meetingDateTime.setHours(hours, minutes, 0, 0)
-    
+
     const diffInMs = meetingDateTime.getTime() - now.getTime()
-    
+
     if (diffInMs <= 0) return 'Meeting has started'
-    
+
     const days = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
     const hours_left = Math.floor((diffInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
     const minutes_left = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60))
-    
+
     if (days > 0) {
       return `${days} day${days > 1 ? 's' : ''} and ${hours_left} hour${hours_left !== 1 ? 's' : ''}`
     } else if (hours_left > 0) {

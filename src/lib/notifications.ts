@@ -63,7 +63,7 @@ export async function sendMeetingNotifications(payload: NotificationPayload): Pr
         `
         )
         .eq('id', payload.meeting_id)
-        .single() as { data: MeetingRecord | null; error: any }
+        .single() as { data: MeetingRecord | null; error: unknown }
 
       if (meeting) {
         meetingData = {
@@ -97,7 +97,7 @@ export async function sendMeetingNotifications(payload: NotificationPayload): Pr
     }
 
     // Create in-app notifications and send emails
-    const notificationsToCreate: Array<Promise<any>> = []
+    const notificationsToCreate: Array<Promise<unknown>> = []
 
     for (const recipient of emailsToSend) {
       // Create notification in database
@@ -242,21 +242,23 @@ export async function sendMeetingReminderNotifications(): Promise<void> {
       .eq('status', 'scheduled')
       .eq('reminder_sent', false)
       .gte('scheduled_date', format(now, 'yyyy-MM-dd'))
-      .lte('scheduled_date', format(fifteenMinutesLater, 'yyyy-MM-dd')) as { data: Array<{
-        id: string
-        title: string
-        description: string | null
-        scheduled_date: string
-        start_time: string
-        end_time: string | null
-        meeting_link: string | null
-        status: string
-        created_by_user: { name: string } | null
-        meeting_participants: Array<{
-          user_id: string
-          users: { name: string; email: string } | null
-        }> | null
-      }> | null; error: any }
+      .lte('scheduled_date', format(fifteenMinutesLater, 'yyyy-MM-dd')) as {
+        data: Array<{
+          id: string
+          title: string
+          description: string | null
+          scheduled_date: string
+          start_time: string
+          end_time: string | null
+          meeting_link: string | null
+          status: string
+          created_by_user: { name: string } | null
+          meeting_participants: Array<{
+            user_id: string
+            users: { name: string; email: string } | null
+          }> | null
+        }> | null; error: unknown
+      }
 
     if (meetings && meetings.length > 0) {
       for (const meeting of meetings) {

@@ -19,7 +19,7 @@ export async function uploadTeamDocument(
   metadata: TeamDocumentMetadata = {}
 ): Promise<{
   success: boolean
-  document: any
+  document: Record<string, unknown>
   storagePath: string
   databaseFilePath: string
 }> {
@@ -43,10 +43,10 @@ export async function uploadTeamDocument(
     const timestamp = Date.now()
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
     const uniqueFileName = `${timestamp}_${safeFileName}`
-    
+
     // Storage path (without bucket name)
     const storagePath = `${userId}/${uniqueFileName}`
-    
+
     // Database stores full path
     const databaseFilePath = `team_project_documents/${storagePath}`
 
@@ -133,7 +133,7 @@ export async function getTeamDocuments(
     department?: string
     search?: string
   } = {}
-): Promise<any[]> {
+): Promise<unknown[]> {
   try {
     const supabase = await createClient()
 
@@ -160,14 +160,14 @@ export async function getTeamDocuments(
 
     // Add download URLs to each document
     const documentsWithUrls = await Promise.all(
-      (documents || []).map(async (doc: any) => {
+      (documents || []).map(async (doc: any) => { // Using any temporarily to avoid property access errors on unknown
         try {
           const storagePath = doc.file_path.replace('team_project_documents/', '')
           const { data: signedUrl } = await supabase
             .storage
             .from('team_project_documents')
             .createSignedUrl(storagePath, 60)
-          
+
           return {
             ...doc,
             download_url: signedUrl?.signedUrl || null
@@ -284,7 +284,7 @@ export async function updateTeamDocument(
   }
 ): Promise<{
   success: boolean
-  document: any
+  document: Record<string, unknown>
 }> {
   try {
     const supabase = await createClient()
@@ -315,7 +315,7 @@ export async function updateTeamDocument(
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString()
     }
 
@@ -387,7 +387,7 @@ export async function getTeamDocumentDownloadUrl(
       .eq('id', userId)
       .single()
 
-    const hasAccess = 
+    const hasAccess =
       userData?.role === 'admin' ||
       document.uploaded_by === userId ||
       (document.shared_with && document.shared_with.includes(userId)) ||

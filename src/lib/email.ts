@@ -39,9 +39,9 @@ export async function sendEmail(payload: EmailPayload): Promise<{ success: boole
 
     console.log('Email sent:', info.messageId)
     return { success: true, messageId: info.messageId }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending email:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
 
@@ -135,13 +135,12 @@ export const emailTemplates = {
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 5px 5px 0 0; }
           .content { background: #f9f9f9; padding: 20px; }
-          .status-badge { display: inline-block; background: ${
-            data.status === 'cancelled'
-              ? '#ff6b6b'
-              : data.status === 'rescheduled'
-                ? '#ffa500'
-                : '#4CAF50'
-          }; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+          .status-badge { display: inline-block; background: ${data.status === 'cancelled'
+        ? '#ff6b6b'
+        : data.status === 'rescheduled'
+          ? '#ffa500'
+          : '#4CAF50'
+      }; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
           .meeting-details { background: white; padding: 15px; border-left: 4px solid #f5576c; margin: 15px 0; }
           .detail-row { margin: 10px 0; }
           .label { font-weight: bold; color: #f5576c; }

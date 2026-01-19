@@ -91,7 +91,7 @@ interface Conversation {
 export default function MessagingSystem() {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -143,7 +143,7 @@ export default function MessagingSystem() {
       const data = await response.json();
       if (data.users) {
         // Filter out current user from the list
-        const filteredUsers = data.users.filter((user: User) => 
+        const filteredUsers = data.users.filter((user: User) =>
           user.id !== currentUser?.id
         );
         setUsers(filteredUsers);
@@ -210,13 +210,13 @@ export default function MessagingSystem() {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         setMessages(prev => [data.message, ...prev]);
         setNewMessage('');
         setSubject('');
         fetchConversations(); // Refresh conversations list
-        
+
         // If this user wasn't in conversations, add them
         if (!conversations.some(conv => conv.user_id === selectedUser.id)) {
           setConversations(prev => [{
@@ -259,16 +259,16 @@ export default function MessagingSystem() {
           status: 'read'
         }),
       });
-      
+
       // Update local message status
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === messageId ? { ...msg, status: 'read' } : msg
       ));
-      
+
       // Update conversations unread count
       if (selectedUser) {
         setConversations(prev => prev.map(conv =>
-          conv.user_id === selectedUser.id 
+          conv.user_id === selectedUser.id
             ? { ...conv, unread_count: Math.max(0, conv.unread_count - 1) }
             : conv
         ));
@@ -290,17 +290,17 @@ export default function MessagingSystem() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
-    
+
     if (date.toDateString() === today.toDateString()) {
       return 'Today';
     }
-    
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
     }
-    
+
     return date.toLocaleDateString();
   };
 
@@ -321,17 +321,17 @@ export default function MessagingSystem() {
 
   // Get users who have conversations
   const usersWithConversations = conversations.map(conv => conv.user_id);
-  
+
   // Filter users based on search and active tab
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.role.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase());
+
     if (activeTab === 'conversations') {
       return matchesSearch && usersWithConversations.includes(user.id);
     }
-    
+
     return matchesSearch;
   });
 
@@ -361,7 +361,7 @@ export default function MessagingSystem() {
               {conversations.reduce((sum, conv) => sum + conv.unread_count, 0)} unread
             </Badge>
           </div>
-          
+
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -371,8 +371,8 @@ export default function MessagingSystem() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'all' | 'conversations')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="all">All Users ({users.length})</TabsTrigger>
               <TabsTrigger value="conversations">Chats ({conversations.length})</TabsTrigger>
@@ -393,7 +393,7 @@ export default function MessagingSystem() {
                   <MessageSquare className="h-12 w-12 text-gray-300 mb-2" />
                   <p className="text-center">No conversations yet</p>
                   <p className="text-sm text-gray-400 text-center mt-1">
-                    Start a chat with someone from the "All Users" tab
+                    Start a chat with someone from the &quot;All Users&quot; tab
                   </p>
                 </>
               ) : (
@@ -413,15 +413,14 @@ export default function MessagingSystem() {
                 const hasConversation = usersWithConversations.includes(user.id);
                 const conversation = conversations.find(conv => conv.user_id === user.id);
                 const isActive = isUserActive(user);
-                
+
                 return (
                   <div
                     key={user.id}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${
-                      selectedUser?.id === user.id 
-                        ? 'bg-blue-50 border-l-4 border-blue-500' 
+                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${selectedUser?.id === user.id
+                        ? 'bg-blue-50 border-l-4 border-blue-500'
                         : 'hover:border-l-4 hover:border-blue-200'
-                    }`}
+                      }`}
                     onClick={() => startNewChat(user)}
                   >
                     <div className="flex items-center gap-3">
@@ -459,14 +458,14 @@ export default function MessagingSystem() {
                           <Mail className="h-3 w-3" />
                           {user.email}
                         </p>
-                        
+
                         {user.phone && (
                           <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-1">
                             <Phone className="h-3 w-3" />
                             {user.phone}
                           </p>
                         )}
-                        
+
                         {hasConversation && conversation ? (
                           <div className="mt-1">
                             <p className="text-sm text-gray-600 truncate">
@@ -579,7 +578,7 @@ export default function MessagingSystem() {
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">Start a conversation</h3>
                   <p className="text-center max-w-md text-gray-600 mb-8">
-                    You haven't messaged {selectedUser.name} yet. Send your first message to start chatting!
+                    You haven&apos;t messaged {selectedUser.name} yet. Send your first message to start chatting!
                   </p>
                   <div className="grid grid-cols-2 gap-3 max-w-md mb-8">
                     <Button
@@ -632,7 +631,7 @@ export default function MessagingSystem() {
                 <div className="space-y-6 pb-4">
                   {messages.map((message, index) => {
                     const isCurrentUserSender = message.sender_id === currentUser?.id;
-                    const showDate = index === 0 || 
+                    const showDate = index === 0 ||
                       formatDate(message.created_at) !== formatDate(messages[index - 1].created_at);
 
                     // Auto-mark as read when viewing
@@ -651,11 +650,10 @@ export default function MessagingSystem() {
                         )}
 
                         <div className={`flex ${isCurrentUserSender ? 'justify-end' : 'justify-start'} mb-2`}>
-                          <div className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${
-                            isCurrentUserSender
+                          <div className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${isCurrentUserSender
                               ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-none'
                               : 'bg-white border border-gray-200 text-gray-900 rounded-bl-none'
-                          }`}>
+                            }`}>
                             {!isCurrentUserSender && (
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-sm font-medium">{message.sender?.name || 'Unknown'}</span>

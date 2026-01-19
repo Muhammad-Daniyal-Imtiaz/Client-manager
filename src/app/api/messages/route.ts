@@ -1,12 +1,19 @@
 import { createClient, createAdminClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
+interface MessageAttachment {
+  name: string
+  url: string
+  type: string
+  size: number
+}
+
 interface MessageBody {
   receiver_id: string
   receiver_email: string
   subject?: string
   message: string
-  attachments?: any[]
+  attachments?: MessageAttachment[]
 }
 
 interface UpdateMessageBody {
@@ -18,7 +25,7 @@ interface UpdateMessageBody {
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -95,8 +102,8 @@ export async function GET(request: Request) {
         ...messages.map(m => m.receiver_id)
       ])).filter(id => id !== user.id)
 
-      let usersMap: Record<string, { name: string; email: string; avatar_url?: string }> = {}
-      
+      const usersMap: Record<string, { name: string; email: string; avatar_url?: string }> = {}
+
       if (userIds.length > 0) {
         const { data: usersData, error: usersError } = await adminClient
           .from('users')
@@ -114,17 +121,29 @@ export async function GET(request: Request) {
         }
       }
 
+      interface ConversationAcc {
+        [key: string]: {
+          user_id: string
+          name: string
+          email: string
+          avatar_url?: string
+          last_message: string
+          last_message_time: string
+          unread_count: number
+        }
+      }
+
       // Group by conversation
-      const conversations = messages.reduce((acc: any, message) => {
+      const conversations = messages.reduce((acc: ConversationAcc, message) => {
         const otherUserId = message.sender_id === user.id ? message.receiver_id : message.sender_id
-        
+
         if (!acc[otherUserId]) {
           const otherUser = usersMap[otherUserId] || {
             name: message.sender_id === user.id ? message.receiver_email : message.sender_email,
             email: message.sender_id === user.id ? message.receiver_email : message.sender_email,
             avatar_url: undefined
           }
-          
+
           acc[otherUserId] = {
             user_id: otherUserId,
             name: otherUser.name,
@@ -135,12 +154,12 @@ export async function GET(request: Request) {
             unread_count: 0
           }
         }
-        
+
         // Count unread messages (only count the latest for each conversation)
         if (message.receiver_id === user.id && message.status === 'sent' && !message.read_at) {
           acc[otherUserId].unread_count += 1
         }
-        
+
         return acc
       }, {})
 
@@ -157,7 +176,7 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const adminClient = await createAdminClient()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -169,8 +188,8 @@ export async function POST(request: Request) {
     const { receiver_id, receiver_email, subject, message, attachments = [] } = body
 
     if (!receiver_id || !receiver_email || !message) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: receiver_id, receiver_email, and message are required' 
+      return NextResponse.json({
+        error: 'Missing required fields: receiver_id, receiver_email, and message are required'
       }, { status: 400 })
     }
 
@@ -245,7 +264,7 @@ export async function PUT(request: Request) {
   try {
     const supabase = await createClient()
     const adminClient = await createAdminClient()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -276,7 +295,11 @@ export async function PUT(request: Request) {
     }
 
     // Update the message status using admin client
-    const updateData: any = { status }
+    interface MessageUpdateData {
+      status: string
+      read_at?: string
+    }
+    const updateData: MessageUpdateData = { status }
     if (status === 'read' && !messageData.read_at) {
       updateData.read_at = new Date().toISOString()
     }

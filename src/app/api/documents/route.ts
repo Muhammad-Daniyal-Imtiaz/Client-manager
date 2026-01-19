@@ -42,21 +42,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
     }
 
+    interface DocumentRPCResult {
+      document_id: string
+      file_path: string
+      [key: string]: unknown
+    }
+
     // Generate download URLs for each document
     const documentsWithUrls = await Promise.all(
-      documents.map(async (doc: any) => {
+      (documents as DocumentRPCResult[]).map(async (doc: DocumentRPCResult) => {
         try {
           // Extract storage path
           let storagePath = doc.file_path
           if (storagePath.startsWith('client_project_documents/')) {
             storagePath = storagePath.replace('client_project_documents/', '')
           }
-          
+
           const { data: signedUrl } = await supabase
             .storage
             .from('client_project_documents')
             .createSignedUrl(storagePath, 60) // 1 minute for list view
-          
+
           return {
             ...doc,
             download_url: signedUrl?.signedUrl || null
@@ -71,13 +77,13 @@ export async function GET(request: Request) {
       })
     )
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      documents: documentsWithUrls 
+      documents: documentsWithUrls
     })
   } catch (error) {
     console.error('Documents API error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
@@ -133,7 +139,7 @@ export async function POST(request: Request) {
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ]
-    
+
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 })
     }
@@ -143,22 +149,22 @@ export async function POST(request: Request) {
 
     // Use the helper function
     const { uploadClientDocument } = await import('@/utils/storage')
-    
+
     const result = await uploadClientDocument(file, user.id, {
       description: description || undefined,
       projectName: projectName || undefined,
       tags: parsedTags.length > 0 ? parsedTags : undefined
     })
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       document: result.document,
-      message: 'Document uploaded successfully' 
+      message: 'Document uploaded successfully'
     })
   } catch (error: unknown) {
     console.error('Upload API error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: errorMessage
     }, { status: 500 })
   }

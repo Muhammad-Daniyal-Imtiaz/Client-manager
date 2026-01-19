@@ -43,12 +43,19 @@ interface UserData {
   created_at?: string;
   updated_at?: string;
   last_login?: string;
-  roleData?: any;
+  roleData?: {
+    team_size?: number;
+    success_rate?: number;
+    department?: string;
+    manager_level?: string;
+    years_experience?: number;
+    [key: string]: unknown;
+  };
 }
 
 interface MenuItem {
   name: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   path: string;
 }
 
@@ -109,7 +116,7 @@ export default function ProjectManagerDashboard({ children }: { children?: React
     try {
       const response = await fetch('/api/auth/session');
       const data = await response.json();
-      
+
       if (response.ok && data.user) {
         setUser(data.user);
       } else {
@@ -157,9 +164,8 @@ export default function ProjectManagerDashboard({ children }: { children?: React
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-purple-50 via-gray-100 to-pink-100 text-gray-900">
       {/* Fixed Sidebar with toggle */}
-      <aside className={`bg-white/90 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col fixed h-full transition-all duration-300 ${
-        sidebarOpen ? "w-64" : "w-20"
-      }`}>
+      <aside className={`bg-white/90 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col fixed h-full transition-all duration-300 ${sidebarOpen ? "w-64" : "w-20"
+        }`}>
         {/* Sidebar Toggle Button at Top */}
         <div className="p-4 border-b border-gray-200 flex justify-end">
           <button
@@ -205,7 +211,7 @@ export default function ProjectManagerDashboard({ children }: { children?: React
             {/* Project Manager */}
           </div>
         )}
-        
+
         <nav className="flex-1 overflow-y-auto py-4">
           {menuItems.map((item) => {
             const isActive = isMenuItemActive(item.path);
@@ -215,11 +221,10 @@ export default function ProjectManagerDashboard({ children }: { children?: React
                 onClick={() => handleMenuClick(item.path)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
-                    : "text-gray-700 hover:bg-purple-50"
-                }`}
+                className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${isActive
+                  ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
+                  : "text-gray-700 hover:bg-purple-50"
+                  }`}
               >
                 <item.icon className="h-5 w-5" />
                 {sidebarOpen && <span className="font-medium">{item.name}</span>}
@@ -253,11 +258,10 @@ export default function ProjectManagerDashboard({ children }: { children?: React
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${
-        sidebarOpen ? "ml-64" : "ml-20"
-      }`}>
+      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-20"
+        }`}>
         {renderActiveSection()}
-        
+
         {/* Additional children (if any) */}
         {children && (
           <div className="mt-8">

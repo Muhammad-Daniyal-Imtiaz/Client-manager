@@ -19,6 +19,7 @@ interface Document {
   download_url: string
   client_name: string
   company_name: string
+  client_id: string
 }
 
 interface User {
@@ -26,18 +27,18 @@ interface User {
   email: string
   name: string
   role: string
-  roleData: any
+  roleData?: Record<string, unknown>
 }
 
 export default function DocumentManager() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [user, setUser] = useState<User | null>(null)
-  
+
   // Upload form state
   const [uploadForm, setUploadForm] = useState({
     description: '',
@@ -53,13 +54,13 @@ export default function DocumentManager() {
   const fetchUserAndDocuments = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch user from session API
       const userRes = await fetch('/api/auth/session')
       if (userRes.ok) {
         const { user: userData } = await userRes.json()
         setUser(userData)
-        
+
         // Only fetch documents if user is client or admin
         if (userData?.role === 'client' || userData?.role === 'admin') {
           await fetchDocuments()
@@ -111,14 +112,14 @@ export default function DocumentManager() {
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ]
-    
+
     if (!allowedTypes.includes(file.type)) {
       toast.error('File type not allowed')
       return
     }
 
     await uploadDocument(file)
-    
+
     // Clear file input
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -133,7 +134,7 @@ export default function DocumentManager() {
 
     try {
       setUploading(true)
-      
+
       const formData = new FormData()
       formData.append('file', file)
       formData.append('description', uploadForm.description)
@@ -254,7 +255,7 @@ export default function DocumentManager() {
             {user?.role === 'admin' ? 'Manage all client documents' : 'Manage your project documents'}
           </p>
         </div>
-        
+
         {user?.role === 'client' && (
           <div className="flex items-center space-x-4">
             <button
@@ -279,7 +280,7 @@ export default function DocumentManager() {
                 </>
               )}
             </button>
-            
+
             <input
               ref={fileInputRef}
               type="file"
@@ -303,12 +304,12 @@ export default function DocumentManager() {
               <input
                 type="text"
                 value={uploadForm.description}
-                onChange={(e) => setUploadForm({...uploadForm, description: e.target.value})}
+                onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Brief description"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Project Name
@@ -316,12 +317,12 @@ export default function DocumentManager() {
               <input
                 type="text"
                 value={uploadForm.projectName}
-                onChange={(e) => setUploadForm({...uploadForm, projectName: e.target.value})}
+                onChange={(e) => setUploadForm({ ...uploadForm, projectName: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Related project"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tags (comma separated)
@@ -329,7 +330,7 @@ export default function DocumentManager() {
               <input
                 type="text"
                 value={uploadForm.tags}
-                onChange={(e) => setUploadForm({...uploadForm, tags: e.target.value})}
+                onChange={(e) => setUploadForm({ ...uploadForm, tags: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="tag1, tag2, tag3"
               />
@@ -380,7 +381,7 @@ export default function DocumentManager() {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* File Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
@@ -407,7 +408,7 @@ export default function DocumentManager() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="mt-1 flex flex-wrap items-center text-sm text-gray-500 space-x-4">
                         <span>{formatFileSize(doc.file_size)}</span>
                         <span>•</span>
@@ -425,7 +426,7 @@ export default function DocumentManager() {
                           </>
                         )}
                       </div>
-                      
+
                       {doc.description && (
                         <p className="mt-1 text-sm text-gray-600 truncate">
                           {doc.description}
@@ -433,7 +434,7 @@ export default function DocumentManager() {
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Actions */}
                   <div className="flex items-center space-x-3">
                     <button
@@ -445,7 +446,7 @@ export default function DocumentManager() {
                       </svg>
                       Download
                     </button>
-                    
+
                     {(user?.role === 'admin' || (user?.role === 'client' && user.id === doc.client_id)) && (
                       <>
                         <button
@@ -454,7 +455,7 @@ export default function DocumentManager() {
                         >
                           Edit
                         </button>
-                        
+
                         <button
                           onClick={() => handleDelete(doc.document_id)}
                           className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -478,21 +479,21 @@ export default function DocumentManager() {
             <div className="text-sm font-medium text-gray-500">Total Documents</div>
             <div className="text-2xl font-semibold text-gray-900">{documents.length}</div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-sm font-medium text-gray-500">Total Size</div>
             <div className="text-2xl font-semibold text-gray-900">
               {formatFileSize(documents.reduce((sum, doc) => sum + doc.file_size, 0))}
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-sm font-medium text-gray-500">Shared Documents</div>
             <div className="text-2xl font-semibold text-gray-900">
               {documents.filter(doc => doc.is_shared).length}
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="text-sm font-medium text-gray-500">Last Upload</div>
             <div className="text-2xl font-semibold text-gray-900">

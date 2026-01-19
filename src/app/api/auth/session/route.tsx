@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const supabase = await createClient()
     const adminClient = await createAdminClient()
-    
+
     // Use getUser() for secure authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -14,26 +14,28 @@ export async function GET() {
     }
 
     // Try to get user from database
-    let { data: userData, error: userError } = await supabase
+    const { data: dbUserData, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single()
 
+    let userData = dbUserData
+
     // If user doesn't exist in database but is authenticated, create them
     if (userError && userError.code === 'PGRST116') {
       console.log('User authenticated but not in database, creating user record:', user.email)
-      
+
       // Create user using admin client with default role
       const { data: createdUser, error: createError } = await adminClient
         .from('users')
         .insert({
           id: user.id,
           email: user.email!,
-          name: user.user_metadata?.name || 
-                user.user_metadata?.full_name || 
-                user.email?.split('@')[0] || 
-                'User',
+          name: user.user_metadata?.name ||
+            user.user_metadata?.full_name ||
+            user.email?.split('@')[0] ||
+            'User',
           role: 'client', // Default role
           avatar_url: user.user_metadata?.avatar_url || null,
           phone: user.user_metadata?.phone || null,
@@ -54,7 +56,7 @@ export async function GET() {
           .select('*')
           .eq('id', user.id)
           .single()
-        
+
         userData = retryUser
       } else {
         userData = createdUser
@@ -94,7 +96,7 @@ export async function GET() {
             .single()
           roleData = clientData
           break
-        
+
         case 'project_manager':
           const { data: pmData } = await supabase
             .from('project_managers')
@@ -103,7 +105,7 @@ export async function GET() {
             .single()
           roleData = pmData
           break
-        
+
         case 'full_stack_developer':
           const { data: devData } = await supabase
             .from('full_stack_developers')
@@ -112,7 +114,7 @@ export async function GET() {
             .single()
           roleData = devData
           break
-        
+
         case 'lead_full_stack_developer':
           const { data: leadDevData } = await supabase
             .from('lead_full_stack_developers')
@@ -121,7 +123,7 @@ export async function GET() {
             .single()
           roleData = leadDevData
           break
-        
+
         case 'admin':
           const { data: adminData } = await supabase
             .from('admins')
@@ -130,7 +132,7 @@ export async function GET() {
             .single()
           roleData = adminData
           break
-        
+
         case 'seo_developer':
           const { data: seoData } = await supabase
             .from('seo_developers')
@@ -139,7 +141,7 @@ export async function GET() {
             .single()
           roleData = seoData
           break
-        
+
         default:
           break
       }
@@ -147,7 +149,7 @@ export async function GET() {
       console.log('Note: Role-specific data not found or not yet created')
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       user: {
         ...userData,
         roleData

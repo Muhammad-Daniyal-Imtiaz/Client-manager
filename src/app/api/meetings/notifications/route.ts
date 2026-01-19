@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -48,9 +48,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ notifications })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching notifications:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
 
     const { error } = await supabase
       .from('meeting_notifications')
-      .update({ 
+      .update({
         is_read: markAsRead,
         read_at: markAsRead ? new Date().toISOString() : null
       })
@@ -78,8 +79,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating notifications:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

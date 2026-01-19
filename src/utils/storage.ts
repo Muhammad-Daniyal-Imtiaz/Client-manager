@@ -360,7 +360,7 @@ export async function listClientDocuments(
     const supabase = await createClient()
 
     // Determine target client ID
-    let targetClientId = clientId || userId
+    const targetClientId = clientId || userId
 
     // Check if user can view these documents
     if (clientId && clientId !== userId) {

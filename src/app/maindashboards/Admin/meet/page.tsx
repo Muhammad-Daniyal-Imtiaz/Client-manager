@@ -97,8 +97,8 @@ export default function MeetingScheduler() {
   }
 
   const handleUserSelect = (userId: string) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
+    setSelectedUsers(prev =>
+      prev.includes(userId)
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     )
@@ -117,28 +117,28 @@ export default function MeetingScheduler() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validate form
     if (!title.trim()) {
       return
     }
-    
+
     if (!meetingType) {
       return
     }
-    
+
     if (!meetingLink.trim()) {
       return
     }
-    
+
     if (!date) {
       return
     }
-    
+
     if (!startTime) {
       return
     }
-    
+
     if (selectedUsers.length === 0) {
       return
     }
@@ -161,7 +161,7 @@ export default function MeetingScheduler() {
       })
 
       const data = await response.json()
-      
+
       if (data.success) {
         // Reset form
         setTitle('')
@@ -173,7 +173,7 @@ export default function MeetingScheduler() {
         setEndTime('')
         setSelectedUsers([])
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error:', error)
     } finally {
       setLoading(false)
@@ -208,7 +208,7 @@ export default function MeetingScheduler() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Meeting Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,9 +225,9 @@ export default function MeetingScheduler() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Meeting Type *</label>
-              <Select 
-                value={meetingType} 
-                onValueChange={setMeetingType} 
+              <Select
+                value={meetingType}
+                onValueChange={setMeetingType}
                 required
                 disabled={loading}
               >
@@ -336,9 +336,9 @@ export default function MeetingScheduler() {
                 required
                 disabled={loading}
               />
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={generateMeetingLink}
                 disabled={loading}
               >
@@ -393,8 +393,8 @@ export default function MeetingScheduler() {
           </div>
 
           {/* Submit Button */}
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             disabled={loading || meetingTypes.length === 0 || users.length === 0}
           >

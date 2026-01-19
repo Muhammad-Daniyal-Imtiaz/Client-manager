@@ -22,11 +22,14 @@ export async function GET(request: Request) {
       success: true,
       message: 'Meeting reminders sent successfully'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending meeting reminders:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to send reminders'
+    const errorDetails = error && typeof error === 'object' && 'details' in error ? error.details : null
+
     return NextResponse.json({
-      error: error.message || 'Failed to send reminders',
-      details: error.details || null
+      error: errorMessage,
+      details: errorDetails
     }, { status: 500 })
   }
 }

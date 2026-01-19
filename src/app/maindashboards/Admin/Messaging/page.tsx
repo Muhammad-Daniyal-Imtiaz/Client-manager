@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Send,
@@ -120,10 +120,38 @@ export default function MessagingSystem() {
     }
   }, [selectedUser]);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const updateConversationsWithNewMessage = useCallback((newMessage: Message) => {
+    setConversations(prev => {
+      const otherUserId = newMessage.sender_id === currentUser?.id
+        ? newMessage.receiver_id
+        : newMessage.sender_id;
+
+      const existingConvIndex = prev.findIndex(c => c.user_id === otherUserId);
+
+      if (existingConvIndex > -1) {
+        const updatedConversations = [...prev];
+        const existingConv = updatedConversations[existingConvIndex];
+
+        updatedConversations[existingConvIndex] = {
+          ...existingConv,
+          last_message: newMessage.message,
+          last_message_time: newMessage.created_at,
+          unread_count: newMessage.receiver_id === currentUser?.id && newMessage.status === 'sent'
+            ? existingConv.unread_count + 1
+            : existingConv.unread_count
+        };
+
+        // Move to top
+        const conv = updatedConversations.splice(existingConvIndex, 1)[0];
+        return [conv, ...updatedConversations];
+      } else {
+        // If it's a new conversation, we might want to refetch or manually add
+        // For now, let's just trigger a refetch of conversations to be safe
+        fetchConversations();
+        return prev;
+      }
+    });
+  }, [currentUser?.id]);
 
   // Setup realtime subscription for messages
   useEffect(() => {
@@ -142,7 +170,7 @@ export default function MessagingSystem() {
           schema: 'public',
           table: 'messages'
         },
-        (payload: any) => {
+        (payload) => {
           console.log('Realtime payload received:', payload);
 
           if (payload.eventType === 'INSERT') {
@@ -187,40 +215,14 @@ export default function MessagingSystem() {
       console.log('Removing realtime channel');
       supabase.removeChannel(channel);
     };
-  }, [selectedUser?.id, currentUser?.id]);
+  }, [selectedUser, currentUser, updateConversationsWithNewMessage]);
 
-  const updateConversationsWithNewMessage = (newMessage: Message) => {
-    setConversations(prev => {
-      const otherUserId = newMessage.sender_id === currentUser?.id
-        ? newMessage.receiver_id
-        : newMessage.sender_id;
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-      const existingConvIndex = prev.findIndex(c => c.user_id === otherUserId);
 
-      if (existingConvIndex > -1) {
-        const updatedConversations = [...prev];
-        const existingConv = updatedConversations[existingConvIndex];
-
-        updatedConversations[existingConvIndex] = {
-          ...existingConv,
-          last_message: newMessage.message,
-          last_message_time: newMessage.created_at,
-          unread_count: newMessage.receiver_id === currentUser?.id && newMessage.status === 'sent'
-            ? existingConv.unread_count + 1
-            : existingConv.unread_count
-        };
-
-        // Move to top
-        const conv = updatedConversations.splice(existingConvIndex, 1)[0];
-        return [conv, ...updatedConversations];
-      } else {
-        // If it's a new conversation, we might want to refetch or manually add
-        // For now, let's just trigger a refetch of conversations to be safe
-        fetchConversations();
-        return prev;
-      }
-    });
-  };
 
   const fetchCurrentUser = async () => {
     try {
@@ -485,7 +487,7 @@ export default function MessagingSystem() {
             />
           </div>
 
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'all' | 'conversations')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="all">All Users ({users.length})</TabsTrigger>
               <TabsTrigger value="conversations">Chats ({conversations.length})</TabsTrigger>
@@ -506,7 +508,7 @@ export default function MessagingSystem() {
                   <MessageSquare className="h-12 w-12 text-gray-300 mb-2" />
                   <p className="text-center">No conversations yet</p>
                   <p className="text-sm text-gray-400 text-center mt-1">
-                    Start a chat with someone from the "All Users" tab
+                    Start a chat with someone from the &quot;All Users&quot; tab
                   </p>
                 </>
               ) : (
@@ -691,7 +693,7 @@ export default function MessagingSystem() {
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">Start a conversation</h3>
                   <p className="text-center max-w-md text-gray-600 mb-8">
-                    You haven't messaged {selectedUser.name} yet. Send your first message to start chatting!
+                    You haven&apos;t messaged {selectedUser.name} yet. Send your first message to start chatting!
                   </p>
                   <div className="grid grid-cols-2 gap-3 max-w-md mb-8">
                     <Button

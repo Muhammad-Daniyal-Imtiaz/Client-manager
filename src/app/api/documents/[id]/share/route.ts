@@ -23,7 +23,7 @@ export async function POST(
     }
 
     // Use the RPC function to share document
-    const { data, error } = await supabase
+    const { error } = await supabase
       .rpc('share_client_document', {
         document_id: id,
         share_with_user_ids: userIds,
@@ -35,9 +35,9 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to share document' }, { status: 500 })
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: unshare ? 'Document unshared successfully' : 'Document shared successfully' 
+    return NextResponse.json({
+      success: true,
+      message: unshare ? 'Document unshared successfully' : 'Document shared successfully'
     })
   } catch (error) {
     console.error('Share API error:', error)

@@ -53,12 +53,16 @@ interface UserData {
   created_at?: string;
   updated_at?: string;
   last_login?: string;
-  roleData?: any;
+  roleData?: {
+    admin_level?: string;
+    last_access?: string;
+    [key: string]: unknown;
+  };
 }
 
 interface MenuItem {
   name: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   path: string;
 }
 
@@ -132,7 +136,7 @@ export default function AdminDashboard({ children }: { children?: React.ReactNod
     try {
       const response = await fetch('/api/auth/session');
       const data = await response.json();
-      
+
       if (response.ok && data.user) {
         if (data.user.role !== 'admin') {
           // Redirect non-admin users
@@ -185,79 +189,77 @@ export default function AdminDashboard({ children }: { children?: React.ReactNod
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 text-gray-900">
       {/* Fixed Sidebar */}
-      <aside className={`bg-white/95 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col fixed h-full transition-all duration-300 overflow-hidden ${
-        sidebarOpen ? "w-64" : "w-0"
-      }`}>
+      <aside className={`bg-white/95 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col fixed h-full transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-64" : "w-0"
+        }`}>
         <div className={`h-full transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center">
-              <Shield className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center">
+                <Shield className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 truncate">{user.name}</p>
+                <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                <Badge className="mt-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-xs">
+                  System Administrator
+                </Badge>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{user.name}</p>
-              <p className="text-sm text-gray-500 truncate">{user.email}</p>
-              <Badge className="mt-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-xs">
-                System Administrator
-              </Badge>
-            </div>
+            {user.roleData && (
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Monitor className="h-4 w-4" />
+                  <span>Admin Level: {user.roleData.admin_level || 'Super Admin'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Activity className="h-4 w-4" />
+                  <span>Last Access: {user.roleData.last_access || 'Now'}</span>
+                </div>
+              </div>
+            )}
           </div>
-          {user.roleData && (
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Monitor className="h-4 w-4" />
-                <span>Admin Level: {user.roleData.admin_level || 'Super Admin'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <Activity className="h-4 w-4" />
-                <span>Last Access: {user.roleData.last_access || 'Now'}</span>
-              </div>
-            </div>
-          )}
-        </div>
 
-        <div className="p-4 text-xl font-bold text-blue-700 text-center border-b border-gray-200">
-          System Administration
-        </div>
-        
-        <nav className="flex-1 overflow-y-auto py-4">
-          {menuItems.map((item) => {
-            const isActive = isMenuItemActive(item.path);
-            return (
-              <motion.div
-                key={item.name}
-                onClick={() => handleMenuClick(item.path)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${
-                  isActive
+          <div className="p-4 text-xl font-bold text-blue-700 text-center border-b border-gray-200">
+            System Administration
+          </div>
+
+          <nav className="flex-1 overflow-y-auto py-4">
+            {menuItems.map((item) => {
+              const isActive = isMenuItemActive(item.path);
+              return (
+                <motion.div
+                  key={item.name}
+                  onClick={() => handleMenuClick(item.path)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${isActive
                     ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white"
                     : "text-gray-700 hover:bg-blue-50"
-                }`}
-              >
-                <item.icon className="h-5 w-5" />
-                {sidebarOpen && <span className="font-medium">{item.name}</span>}
-                {isActive && (
-                  <div className="ml-auto w-2 h-2 rounded-full bg-white/80 animate-pulse" />
-                )}
-              </motion.div>
-            );
-          })}
-        </nav>
+                    }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {sidebarOpen && <span className="font-medium">{item.name}</span>}
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 rounded-full bg-white/80 animate-pulse" />
+                  )}
+                </motion.div>
+              );
+            })}
+          </nav>
 
-        <div className="border-t border-gray-200 p-4 space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">System Status</span>
-            <Badge className="bg-green-100 text-green-800">Online</Badge>
+          <div className="border-t border-gray-200 p-4 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">System Status</span>
+              <Badge className="bg-green-100 text-green-800">Online</Badge>
+            </div>
+            <Button
+              onClick={handleLogout}
+              className="w-full bg-gray-800 hover:bg-gray-900 text-white flex items-center justify-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
           </div>
-          <Button
-            onClick={handleLogout}
-            className="w-full bg-gray-800 hover:bg-gray-900 text-white flex items-center justify-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
-        </div>
         </div>
       </aside>
 
@@ -272,11 +274,10 @@ export default function AdminDashboard({ children }: { children?: React.ReactNod
       </button>
 
       {/* Main Content */}
-      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${
-        sidebarOpen ? "ml-64" : "ml-0"
-      }`}>
+      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-0"
+        }`}>
         {renderActiveSection()}
-        
+
         {/* Additional children (if any) */}
         {children && (
           <div className="mt-8">
@@ -289,7 +290,7 @@ export default function AdminDashboard({ children }: { children?: React.ReactNod
 }
 
 // Dashboard Content Component
-function DashboardContent({ systemHealth }: { systemHealth: any }) {
+function DashboardContent({ systemHealth }: { systemHealth: { cpu: number; memory: number; storage: number; uptime: number } }) {
   return (
     <>
       <div className="flex justify-between items-center mb-8">
@@ -386,7 +387,7 @@ function DashboardContent({ systemHealth }: { systemHealth: any }) {
                 <TabsTrigger value="recent">Recent Activity</TabsTrigger>
                 <TabsTrigger value="roles">Role Distribution</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="overview" className="space-y-6">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
@@ -402,7 +403,7 @@ function DashboardContent({ systemHealth }: { systemHealth: any }) {
                     <p className="text-sm text-gray-600">Pending Approval</p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-700">Active Users (24h)</span>
@@ -418,7 +419,7 @@ function DashboardContent({ systemHealth }: { systemHealth: any }) {
                   </div>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="recent">
                 <div className="space-y-3">
                   {['User registration', 'Role change', 'Password reset', 'Profile update', 'Login attempt'].map((activity, idx) => (
@@ -513,10 +514,9 @@ function DashboardContent({ systemHealth }: { systemHealth: any }) {
               ].map((activity, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      activity.status === 'success' ? 'bg-green-100' :
+                    <div className={`p-2 rounded-lg ${activity.status === 'success' ? 'bg-green-100' :
                       activity.status === 'warning' ? 'bg-yellow-100' : 'bg-red-100'
-                    }`}>
+                      }`}>
                       {activity.status === 'success' ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : activity.status === 'warning' ? (
@@ -532,7 +532,7 @@ function DashboardContent({ systemHealth }: { systemHealth: any }) {
                   </div>
                   <Badge variant={
                     activity.status === 'success' ? 'default' :
-                    activity.status === 'warning' ? 'secondary' : 'destructive'
+                      activity.status === 'warning' ? 'secondary' : 'destructive'
                   }>
                     {activity.status}
                   </Badge>

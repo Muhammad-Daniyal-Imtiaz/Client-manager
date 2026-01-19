@@ -61,7 +61,7 @@ export async function PUT(
       `
       )
       .eq('id', meetingId)
-      .single() as { data: MeetingData | null; error: any }
+      .single() as { data: MeetingData | null; error: { message: string; details: string; hint: string; code: string } | null }
 
     if (!currentMeeting) {
       return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
@@ -73,7 +73,16 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: any = {}
+    interface MeetingUpdateData {
+      title?: string
+      description?: string | null
+      scheduled_date?: string
+      start_time?: string
+      end_time?: string | null
+      meeting_link?: string | null
+      status?: string
+    }
+    const updateData: MeetingUpdateData = {}
     let statusChanged = false
     let changeDetails = ''
 
@@ -187,11 +196,14 @@ export async function PUT(
       meeting: updatedMeeting,
       message: 'Meeting updated successfully and participants notified'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating meeting:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update meeting'
+    const errorDetails = error && typeof error === 'object' && 'details' in error ? error.details : null
+
     return NextResponse.json({
-      error: error.message || 'Failed to update meeting',
-      details: error.details || null
+      error: errorMessage,
+      details: errorDetails
     }, { status: 500 })
   }
 }

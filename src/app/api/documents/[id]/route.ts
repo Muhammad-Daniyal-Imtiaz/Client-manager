@@ -38,9 +38,9 @@ export async function GET(
       .eq('id', user.id)
       .single()
 
-    const canView = userData?.role === 'admin' || 
-                    document.client_id === user.id || 
-                    document.shared_with?.includes(user.id)
+    const canView = userData?.role === 'admin' ||
+      document.client_id === user.id ||
+      document.shared_with?.includes(user.id)
 
     if (!canView) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
@@ -52,7 +52,7 @@ export async function GET(
       .from('client_project_documents')
       .createSignedUrl(document.file_path, 60) // 60 seconds expiry
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       document: {
         ...document,
         downloadUrl: signedUrl?.signedUrl
@@ -108,7 +108,16 @@ export async function PUT(
     }
 
     // Update document
-    const updateData: any = {
+    interface DocumentUpdateData {
+      updated_by: string
+      updated_at: string
+      description?: string
+      project_name?: string
+      tags?: string[]
+      is_shared?: boolean
+    }
+
+    const updateData: DocumentUpdateData = {
       updated_by: user.id,
       updated_at: new Date().toISOString()
     }
@@ -130,10 +139,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Failed to update document' }, { status: 500 })
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       document,
-      message: 'Document updated successfully' 
+      message: 'Document updated successfully'
     })
   } catch (error) {
     console.error('Update API error:', error)
@@ -203,9 +212,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Failed to delete document record' }, { status: 500 })
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Document deleted successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'Document deleted successfully'
     })
   } catch (error) {
     console.error('Delete API error:', error)

@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { 
-  Search, Filter, Download, Trash2, Eye, 
-  FileText, Calendar, User, Building, 
-  ChevronLeft, ChevronRight, AlertCircle,
-  CheckCircle, XCircle, FileUp
+import {
+  Search, Filter, Download, Trash2, Eye,
+  FileText, Calendar, User, Building,
+  ChevronLeft, ChevronRight,
+  CheckCircle, FileUp
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -54,7 +54,7 @@ interface Statistics {
 
 export default function AdminDocumentsManager() {
   const router = useRouter()
-  
+
   // State
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,7 +65,7 @@ export default function AdminDocumentsManager() {
     totalPages: 0
   })
   const [statistics, setStatistics] = useState<Statistics | null>(null)
-  
+
   // Filters
   const [filters, setFilters] = useState({
     search: '',
@@ -79,13 +79,13 @@ export default function AdminDocumentsManager() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
   const [bulkAction, setBulkAction] = useState<'delete' | 'download' | null>(null)
-  const [clients, setClients] = useState<Array<{id: string, name: string, email: string}>>([])
+  const [clients, setClients] = useState<Array<{ id: string, name: string, email: string }>>([])
 
   // Fetch documents
   const fetchDocuments = useCallback(async (page = 1) => {
     try {
       setLoading(true)
-      
+
       // Build query string
       const params = new URLSearchParams({
         page: page.toString(),
@@ -97,7 +97,7 @@ export default function AdminDocumentsManager() {
       })
 
       const response = await fetch(`/api/admin/documents?${params}`)
-      
+
       if (!response.ok) {
         if (response.status === 403) {
           toast.error('Admin access required')
@@ -108,7 +108,7 @@ export default function AdminDocumentsManager() {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         setDocuments(data.documents || [])
         setPagination(data.pagination)
@@ -205,7 +205,7 @@ export default function AdminDocumentsManager() {
         })
 
         const data = await response.json()
-        
+
         if (response.ok && data.success) {
           toast.success(data.message)
           setSelectedDocuments(new Set())
@@ -292,7 +292,7 @@ export default function AdminDocumentsManager() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="bg-green-100 p-3 rounded-lg">
@@ -304,7 +304,7 @@ export default function AdminDocumentsManager() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="bg-purple-100 p-3 rounded-lg">
@@ -313,8 +313,8 @@ export default function AdminDocumentsManager() {
               <div className="ml-4">
                 <div className="text-sm font-medium text-gray-500">Avg per Client</div>
                 <div className="text-2xl font-semibold text-gray-900">
-                  {statistics.documentsPerClient > 0 
-                    ? Math.round(statistics.totalDocuments / statistics.documentsPerClient) 
+                  {statistics.documentsPerClient > 0
+                    ? Math.round(statistics.totalDocuments / statistics.documentsPerClient)
                     : 0}
                 </div>
               </div>
@@ -350,14 +350,14 @@ export default function AdminDocumentsManager() {
               <Filter className="h-4 w-4 mr-2" />
               Filters
             </button>
-            
+
             <button
               onClick={applyFilters}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Apply
             </button>
-            
+
             <button
               onClick={clearFilters}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -460,18 +460,18 @@ export default function AdminDocumentsManager() {
                 {selectedDocuments.size} document(s) selected
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <select
                 value={bulkAction || ''}
-                onChange={(e) => setBulkAction(e.target.value as any)}
+                onChange={(e) => setBulkAction(e.target.value as 'delete' | 'download' | null)}
                 className="px-3 py-1 border border-gray-300 rounded-lg"
               >
                 <option value="">Bulk Actions</option>
                 <option value="download">Download Selected</option>
                 <option value="delete">Delete Selected</option>
               </select>
-              
+
               <button
                 onClick={handleBulkAction}
                 disabled={!bulkAction}
@@ -479,7 +479,7 @@ export default function AdminDocumentsManager() {
               >
                 Apply
               </button>
-              
+
               <button
                 onClick={() => setSelectedDocuments(new Set())}
                 className="px-4 py-1 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -498,8 +498,8 @@ export default function AdminDocumentsManager() {
             <FileText className="h-12 w-12 text-gray-400 mx-auto" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No documents</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {Object.values(filters).some(v => v) 
-                ? 'No documents match your filters' 
+              {Object.values(filters).some(v => v)
+                ? 'No documents match your filters'
                 : 'No documents have been uploaded yet'}
             </p>
           </div>
@@ -686,11 +686,10 @@ export default function AdminDocumentsManager() {
                         <button
                           key={pageNum}
                           onClick={() => goToPage(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            pagination.page === pageNum
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${pagination.page === pageNum
                               ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                               : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
+                            }`}
                         >
                           {pageNum}
                         </button>

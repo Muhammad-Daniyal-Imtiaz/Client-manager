@@ -2,23 +2,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { 
-  Calendar, 
-  Users, 
-  Clock, 
-  Video, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle,
+import {
+  Calendar,
+  Users,
+  Clock,
+  Video,
+  CheckCircle,
   Bell,
   Eye,
-  MessageSquare,
   ExternalLink,
-  Filter,
   Search,
   RefreshCw
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -40,7 +36,7 @@ interface Meeting {
   timezone: string
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled' | 'rescheduled'
   notes: string
-  agenda: any
+  agenda: unknown
   created_by_name: string
   created_by_email: string
   participant_count: number
@@ -105,7 +101,7 @@ export default function MeetingsPage() {
     try {
       const response = await fetch('/api/meetings/user')
       const data = await response.json()
-      
+
       if (data.meetings) {
         setMeetings(data.meetings)
       } else {
@@ -124,7 +120,7 @@ export default function MeetingsPage() {
     try {
       const response = await fetch('/api/meetings/notifications')
       const data = await response.json()
-      
+
       if (data.notifications) {
         setNotifications(data.notifications)
       } else {
@@ -143,7 +139,7 @@ export default function MeetingsPage() {
     try {
       const response = await fetch(`/api/meetings/${meetingId}/participants`)
       const data = await response.json()
-      
+
       if (data.participants) {
         setMeetingParticipants(data.participants)
       } else {
@@ -167,13 +163,13 @@ export default function MeetingsPage() {
           markAsRead: true
         })
       })
-      
+
       const data = await response.json()
       if (data.success) {
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, is_read: true } 
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif.id === notificationId
+              ? { ...notif, is_read: true }
               : notif
           )
         )
@@ -198,10 +194,10 @@ export default function MeetingsPage() {
           markAsRead: true
         })
       })
-      
+
       const data = await response.json()
       if (data.success) {
-        setNotifications(prev => 
+        setNotifications(prev =>
           prev.map(notif => ({ ...notif, is_read: true }))
         )
         toast.success('All notifications marked as read')
@@ -249,13 +245,13 @@ export default function MeetingsPage() {
   }
 
   const filteredMeetings = meetings.filter(meeting => {
-    const matchesSearch = 
+    const matchesSearch =
       meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       meeting.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       meeting.meeting_type.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesStatus = statusFilter === 'all' || meeting.status === statusFilter
-    
+
     return matchesSearch && matchesStatus
   })
 
@@ -274,10 +270,10 @@ export default function MeetingsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Meetings & Notifications</h1>
           <p className="text-gray-600 mt-2">Manage and view all your meetings and notifications</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={activeTab === 'meetings' ? fetchMeetings : fetchNotifications}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -365,7 +361,7 @@ export default function MeetingsPage() {
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No meetings found</h3>
                 <p className="text-gray-600">
-                  {searchTerm || statusFilter !== 'all' 
+                  {searchTerm || statusFilter !== 'all'
                     ? 'Try adjusting your search or filters'
                     : 'You have no scheduled meetings'}
                 </p>
@@ -376,11 +372,10 @@ export default function MeetingsPage() {
               {/* Meetings List */}
               <div className="lg:col-span-2 space-y-4">
                 {filteredMeetings.map(meeting => (
-                  <Card 
-                    key={meeting.id} 
-                    className={`cursor-pointer hover:shadow-lg transition-shadow ${
-                      selectedMeeting?.id === meeting.id ? 'ring-2 ring-primary' : ''
-                    }`}
+                  <Card
+                    key={meeting.id}
+                    className={`cursor-pointer hover:shadow-lg transition-shadow ${selectedMeeting?.id === meeting.id ? 'ring-2 ring-primary' : ''
+                      }`}
                     onClick={() => setSelectedMeeting(meeting)}
                   >
                     <CardContent className="p-6">
@@ -394,7 +389,7 @@ export default function MeetingsPage() {
                               {meeting.status.replace('-', ' ')}
                             </Badge>
                           </div>
-                          
+
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
@@ -428,8 +423,8 @@ export default function MeetingsPage() {
                         </div>
 
                         <div className="flex flex-col gap-2 ml-4">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
                               joinMeeting(meeting.meeting_link)
@@ -438,8 +433,8 @@ export default function MeetingsPage() {
                             <Video className="h-4 w-4 mr-1" />
                             Join
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation()
@@ -471,7 +466,7 @@ export default function MeetingsPage() {
                           <p className="text-sm">{selectedMeeting.created_by_name}</p>
                           <p className="text-xs text-gray-500">{selectedMeeting.created_by_email}</p>
                         </div>
-                        
+
                         <div>
                           <h4 className="text-sm font-medium text-gray-700 mb-1">Timezone</h4>
                           <p className="text-sm">{selectedMeeting.timezone}</p>
@@ -480,7 +475,7 @@ export default function MeetingsPage() {
                         <div>
                           <h4 className="text-sm font-medium text-gray-700 mb-1">Duration</h4>
                           <p className="text-sm">
-                            {selectedMeeting.duration_minutes 
+                            {selectedMeeting.duration_minutes
                               ? `${selectedMeeting.duration_minutes} minutes`
                               : 'Not specified'
                             }
@@ -503,7 +498,7 @@ export default function MeetingsPage() {
                           </div>
                         )}
 
-                        {selectedMeeting.agenda && (
+                        {!!selectedMeeting.agenda && (
                           <div>
                             <h4 className="text-sm font-medium text-gray-700 mb-1">Agenda</h4>
                             <pre className="text-sm text-gray-600 whitespace-pre-wrap max-h-40 overflow-y-auto p-2 bg-gray-50 rounded">
@@ -603,7 +598,7 @@ export default function MeetingsPage() {
                 <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications</h3>
                 <p className="text-gray-600">
-                  {searchTerm 
+                  {searchTerm
                     ? 'No notifications match your search'
                     : 'You have no meeting notifications'
                   }
@@ -613,8 +608,8 @@ export default function MeetingsPage() {
           ) : (
             <div className="space-y-4">
               {filteredNotifications.map(notification => (
-                <Card 
-                  key={notification.id} 
+                <Card
+                  key={notification.id}
                   className={`${!notification.is_read ? 'border-primary/20 bg-primary/5' : ''}`}
                 >
                   <CardContent className="p-6">
@@ -633,7 +628,7 @@ export default function MeetingsPage() {
                             </Badge>
                           )}
                         </div>
-                        
+
                         <p className="text-gray-600 mb-4 whitespace-pre-wrap">
                           {notification.message}
                         </p>
@@ -657,8 +652,8 @@ export default function MeetingsPage() {
 
                       <div className="flex flex-col gap-2 ml-4">
                         {!notification.is_read && (
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => markNotificationAsRead(notification.id)}
                           >
@@ -666,10 +661,10 @@ export default function MeetingsPage() {
                             Mark Read
                           </Button>
                         )}
-                        
+
                         {notification.meeting?.meeting_link && (
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             onClick={() => joinMeeting(notification.meeting.meeting_link)}
                           >
                             <Video className="h-4 w-4 mr-1" />

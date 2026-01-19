@@ -124,11 +124,14 @@ export async function POST(request: Request) {
       meeting,
       message: 'Meeting created successfully and invitations sent'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating meeting:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create meeting'
+    const errorDetails = error && typeof error === 'object' && 'details' in error ? error.details : null
+
     return NextResponse.json({
-      error: error.message || 'Failed to create meeting',
-      details: error.details || null
+      error: errorMessage,
+      details: errorDetails
     }, { status: 500 })
   }
 }

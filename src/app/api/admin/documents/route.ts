@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -82,36 +82,74 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Error fetching admin documents:', error)
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Failed to fetch documents',
-        details: error.message 
+        details: error.message
       }, { status: 500 })
     }
 
     console.log('Found documents:', documents?.length)
 
+    interface AdminDocumentData {
+      id: string
+      client_id: string
+      file_path: string
+      file_name: string
+      description: string | null
+      project_name: string | null
+      created_at: string
+      is_shared: boolean
+      clients: {
+        company_name: string
+        company_size: string
+        industry: string
+        client_since: string
+      }
+      [key: string]: unknown
+    }
+
+    interface AdminUserData {
+      id: string
+      email: string
+      name: string
+      phone: string | null
+      country: string | null
+    }
+
+    interface DocumentWithUserInfo extends AdminDocumentData {
+      client: AdminDocumentData['clients']
+      user: Partial<AdminUserData>
+      download_url?: string | null
+    }
+
     // If we have documents, get the user info for each client
-    let documentsWithUserInfo: any[] = []
-    
-    if (documents && documents.length > 0) {
+    let documentsWithUserInfo: DocumentWithUserInfo[] = []
+
+    if (documents && (documents as AdminDocumentData[]).length > 0) {
+      const typedDocuments = documents as AdminDocumentData[]
       // Get all unique client IDs
-      const clientIds = [...new Set(documents.map(doc => doc.client_id))]
-      
+      const clientIds = [...new Set(typedDocuments.map(doc => doc.client_id))]
+
       // Get user info for these clients
       const { data: users } = await supabase
         .from('users')
         .select('id, email, name, phone, country')
         .in('id', clientIds)
-      
+
       // Create a map for quick lookup
-      const userMap = new Map()
-      users?.forEach(user => userMap.set(user.id, user))
-      
+      const userMap = new Map<string, AdminUserData>();
+      (users as AdminUserData[] | null)?.forEach((user: AdminUserData) => userMap.set(user.id, user));
+
       // Combine document data with user info
-      documentsWithUserInfo = documents.map(doc => {
+      documentsWithUserInfo = typedDocuments.map(doc => {
         const userInfo = userMap.get(doc.client_id) || {}
-        const clientInfo = doc.clients || {}
-        
+        const clientInfo = doc.clients || {
+          company_name: '',
+          company_size: '',
+          industry: '',
+          client_since: ''
+        }
+
         return {
           ...doc,
           client: clientInfo,
@@ -122,19 +160,19 @@ export async function GET(request: Request) {
 
     // Get download URLs for each document
     const documentsWithUrls = await Promise.all(
-      documentsWithUserInfo.map(async (doc: any) => {
+      documentsWithUserInfo.map(async (doc: DocumentWithUserInfo) => {
         try {
           // Extract storage path
           let storagePath = doc.file_path
           if (storagePath.startsWith('client_project_documents/')) {
             storagePath = storagePath.replace('client_project_documents/', '')
           }
-          
+
           const { data: signedUrl } = await supabase
             .storage
             .from('client_project_documents')
             .createSignedUrl(storagePath, 300) // 5 minutes
-          
+
           return {
             ...doc,
             download_url: signedUrl?.signedUrl || null
@@ -184,7 +222,7 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Admin documents API error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })

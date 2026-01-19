@@ -52,12 +52,17 @@ interface UserData {
   created_at?: string;
   updated_at?: string;
   last_login?: string;
-  roleData?: any;
+  roleData?: {
+    active_projects?: number;
+    client_since?: string;
+    account_balance?: number;
+    [key: string]: unknown;
+  };
 }
 
 interface MenuItem {
   name: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   path: string;
 }
 
@@ -134,7 +139,7 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
     try {
       const response = await fetch('/api/auth/session');
       const data = await response.json();
-      
+
       if (response.ok && data.user) {
         if (data.user.role !== 'client') {
           window.location.href = '/role-selection';
@@ -204,9 +209,8 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-emerald-50 via-cyan-50 to-blue-50 text-gray-900">
       {/* Fixed Sidebar */}
-      <aside className={`bg-white/95 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col fixed h-full transition-all duration-300 ${
-        sidebarOpen ? "w-64" : "w-20"
-      }`}>
+      <aside className={`bg-white/95 shadow-xl border-r border-gray-200 backdrop-blur-md flex flex-col fixed h-full transition-all duration-300 ${sidebarOpen ? "w-64" : "w-20"
+        }`}>
         {/* Sidebar Toggle Button at Top */}
         <div className="p-4 border-b border-gray-200 flex justify-end">
           <button
@@ -255,7 +259,7 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
             Client Portal
           </div>
         )}
-        
+
         <nav className="flex-1 overflow-y-auto py-4">
           {menuItems.map((item) => {
             const isActive = isMenuItemActive(item.path);
@@ -265,11 +269,10 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
                 onClick={() => handleMenuClick(item.path)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-emerald-500 to-cyan-600 text-white"
-                    : "text-gray-700 hover:bg-emerald-50"
-                }`}
+                className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-all duration-200 ${isActive
+                  ? "bg-gradient-to-r from-emerald-500 to-cyan-600 text-white"
+                  : "text-gray-700 hover:bg-emerald-50"
+                  }`}
               >
                 <item.icon className="h-5 w-5" />
                 {sidebarOpen && <span className="font-medium">{item.name}</span>}
@@ -319,11 +322,10 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${
-        sidebarOpen ? "ml-64" : "ml-20"
-      }`}>
+      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-20"
+        }`}>
         {renderActiveSection()}
-        
+
         {/* Additional children (if any) */}
         {children && (
           <div className="mt-8">
@@ -336,14 +338,14 @@ export default function ClientDashboard({ children }: { children?: React.ReactNo
 }
 
 // Dashboard Content Component
-function DashboardContent({ 
-  user, 
-  activeProjects, 
-  invoices 
-}: { 
-  user: UserData | null; 
-  activeProjects: Project[]; 
-  invoices: Invoice[]; 
+function DashboardContent({
+  user,
+  activeProjects,
+  invoices
+}: {
+  user: UserData | null;
+  activeProjects: Project[];
+  invoices: Invoice[];
 }) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -368,7 +370,7 @@ function DashboardContent({
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.name?.split(' ')[0]}!</h1>
-          <p className="text-gray-600 mt-2">Here's what's happening with your projects today</p>
+          <p className="text-gray-600 mt-2">Here&apos;s what&apos;s happening with your projects today</p>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="outline" className="flex items-center gap-2">
@@ -486,7 +488,7 @@ function DashboardContent({
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Progress</span>
@@ -494,7 +496,7 @@ function DashboardContent({
                     </div>
                     <Progress value={project.progress} className="h-2" />
                   </div>
-                  
+
                   <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
@@ -679,7 +681,7 @@ function DashboardContent({
 }
 
 // Helper Components
-function Video(props: any) {
+function Video(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

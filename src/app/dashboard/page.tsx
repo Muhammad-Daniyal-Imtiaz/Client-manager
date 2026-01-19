@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface UserData {
@@ -13,7 +13,7 @@ interface UserData {
   created_at?: string;
   updated_at?: string;
   last_login?: string;
-  roleData?: any;
+  roleData?: Record<string, unknown> | null;
 }
 
 export default function DashboardRedirect() {
@@ -21,53 +21,7 @@ export default function DashboardRedirect() {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      // Use server-side session endpoint which has proper database access
-      const response = await fetch('/api/auth/session', {
-        method: 'GET',
-        credentials: 'include', // Include cookies for authentication
-      });
-
-      if (!response.ok) {
-        console.log('Session endpoint returned status:', response.status);
-        if (response.status === 401) {
-          router.push('/login');
-        } else {
-          // Server error - wait and retry
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        }
-        return;
-      }
-
-      const data = await response.json();
-      
-      if (!data.user) {
-        console.log('No user data in session response');
-        router.push('/login');
-        return;
-      }
-
-      setUser(data.user);
-      redirectBasedOnRole(data.user);
-    } catch (err) {
-      console.error('Error checking auth status:', err);
-      // Wait a moment and retry
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const redirectBasedOnRole = (userData: UserData) => {
+  const redirectBasedOnRole = useCallback((userData: UserData) => {
     switch (userData.role) {
       case 'client':
         router.push('/maindashboards/Client');
@@ -90,7 +44,53 @@ export default function DashboardRedirect() {
       default:
         router.push('/dashboard/client'); // Default fallback
     }
-  };
+  }, [router]);
+
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      // Use server-side session endpoint which has proper database access
+      const response = await fetch('/api/auth/session', {
+        method: 'GET',
+        credentials: 'include', // Include cookies for authentication
+      });
+
+      if (!response.ok) {
+        console.log('Session endpoint returned status:', response.status);
+        if (response.status === 401) {
+          router.push('/login');
+        } else {
+          // Server error - wait and retry
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        }
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!data.user) {
+        console.log('No user data in session response');
+        router.push('/login');
+        return;
+      }
+
+      setUser(data.user);
+      redirectBasedOnRole(data.user);
+    } catch (err) {
+      console.error('Error checking auth status:', err);
+      // Wait a moment and retry
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  }, [router, redirectBasedOnRole]);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
 
   if (loading) {
     return (

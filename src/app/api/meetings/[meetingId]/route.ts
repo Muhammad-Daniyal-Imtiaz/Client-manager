@@ -35,7 +35,7 @@ export async function GET(
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -60,7 +60,7 @@ export async function GET(
       `)
       .eq('meeting_id', meetingId)
       .order('role', { ascending: false })
-      .order('users(name)') as { data: ParticipantRecord[] | null; error: any }
+      .order('users(name)') as { data: ParticipantRecord[] | null; error: { message: string; details: string; hint: string; code: string } | null }
 
     if (error) {
       console.error('Error fetching participants:', error)
@@ -80,7 +80,7 @@ export async function GET(
 
     return NextResponse.json({ participants: transformedParticipants })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in participants API:', error)
     return NextResponse.json({ participants: [] }, { status: 500 })
   }

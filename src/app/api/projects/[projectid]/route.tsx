@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Fetch project_tasks for each phase
-    let phasesWithTasks = [];
+    const phasesWithTasks = [];
     if (phases && phases.length > 0) {
       for (const phase of phases) {
         const { data: tasks, error: tasksError } = await supabase

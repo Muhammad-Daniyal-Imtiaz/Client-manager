@@ -52,8 +52,7 @@ yarn add nodemailer
 
 Your `.env.local` already has:
 ```env
-EMAIL_USER=drhomefixerpro@gmail.com
-EMAIL_PASS=agbqbuywenzccume
+
 ```
 
 For production, also add:

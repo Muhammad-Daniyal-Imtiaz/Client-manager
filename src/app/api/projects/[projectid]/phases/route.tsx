@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from './../../../sutils/supabaseConfig';
 
-
 // GET all phases for a project
 export async function GET(
   request: Request,
@@ -14,6 +13,10 @@ export async function GET(
       .from('phases')
       .select(`
         *,
+        templates (
+          templatename,
+          category
+        ),
         project_tasks (
           *,
           project_task_assignments (
@@ -51,7 +54,7 @@ export async function POST(
   try {
     const { projectid } = await params;
     const body = await request.json();
-    const { phasename, phaseorder } = body;
+    const { phasename, phaseorder, templateid } = body; // Added templateid
 
     if (!phasename) {
       return NextResponse.json(
@@ -77,14 +80,21 @@ export async function POST(
     const { data: phase, error: phaseError } = await supabase
       .from('phases')
       .insert([
-        { 
-          projectid: parseInt(projectid), 
-          phasename, 
+        {
+          projectid: parseInt(projectid),
+          phasename,
           phaseorder: order,
-          status: 'Not Started'
+          status: 'Not Started',
+          templateid: templateid || null // Added templateid here
         }
       ])
-      .select()
+      .select(`
+        *,
+        templates (
+          templatename,
+          category
+        )
+      `)
       .single();
 
     if (phaseError) throw phaseError;

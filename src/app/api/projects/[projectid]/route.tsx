@@ -32,10 +32,16 @@ export async function GET(
       );
     }
 
-    // Fetch phases for this project
+    // Fetch phases for this project WITH template information
     const { data: phases, error: phasesError } = await supabase
       .from('phases')
-      .select('*')
+      .select(`
+        *,
+        templates (
+          templatename,
+          category
+        )
+      `)
       .eq('projectid', projectId)
       .order('phaseorder', { ascending: true });
 
@@ -49,7 +55,13 @@ export async function GET(
       for (const phase of phases) {
         const { data: tasks, error: tasksError } = await supabase
           .from('project_tasks')
-          .select('*')
+          .select(`
+            *,
+            project_task_assignments (
+              *,
+              users (*)
+            )
+          `)
           .eq('phaseid', phase.phaseid)
           .order('createdat', { ascending: true });
 
@@ -77,7 +89,7 @@ export async function GET(
       console.error('Templates fetch error:', templatesError);
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       project: {
         ...project,
         phases: phasesWithTasks,
@@ -114,8 +126,8 @@ export async function PUT(
 
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .update({ 
-        projectname, 
+      .update({
+        projectname,
         description: description || null,
         projecttype: projecttype || 'General'
       })

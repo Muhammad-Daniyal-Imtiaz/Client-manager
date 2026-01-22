@@ -1,8 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import ProjectPermissionsManager from '../../ProjectPermissionsManager/page';
-// import ProjectPermissionsManager from '../ProjectPermissionsManager/page.tsx';
+import ProjectPermissionsManager from '@/app/maindashboards/Admin/ProjectPermissionsManager/page';
 
 interface User {
   id: string;

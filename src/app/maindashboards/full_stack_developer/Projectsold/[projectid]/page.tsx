@@ -1,16 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import ProjectPermissionsManager from '../../ProjectPermissionsManager/page';
-// import ProjectPermissionsManager from '../ProjectPermissionsManager/page.tsx';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar_url?: string;
-}
 
 interface TaskAssignment {
   taskassignmentid: number;
@@ -26,10 +16,6 @@ interface Task {
   duedate: string | null;
   createdat: string;
   templateid: number;
-  created_by?: string;
-  updated_by?: string;
-  creator?: User;
-  updater?: User;
   taskassignments: TaskAssignment[];
 }
 
@@ -40,14 +26,6 @@ interface Phase {
   status: string;
   createdat: string;
   templateid: number;
-  created_by?: string;
-  updated_by?: string;
-  creator?: User;
-  updater?: User;
-  templates?: {
-    templatename: string;
-    category: string;
-  };
   tasks: Task[];
 }
 
@@ -66,13 +44,6 @@ interface Project {
   description: string;
   projecttype: string;
   createdat: string;
-  project_password?: string;
-  project_token?: string;
-  createdbyuserid: string;
-  created_by?: string;
-  updated_by?: string;
-  creator?: User;
-  updater?: User;
   phases: Phase[];
   projecttemplates: ProjectTemplate[];
 }
@@ -92,13 +63,11 @@ export default function ProjectDetail() {
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [editingTask, setEditingTask] = useState<{ taskId: number; description: string } | null>(null);
   const [editingPhase, setEditingPhase] = useState<{ phaseId: number; name: string } | null>(null);
+  const [assigningTask, setAssigningTask] = useState<number | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<string>('all');
-  const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null);
-  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchProject();
-    fetchCurrentUser();
   }, [projectId]);
 
   const fetchProject = async () => {
@@ -118,51 +87,6 @@ export default function ProjectDetail() {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/auth/user');
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentUser(data.user);
-      }
-    } catch (error) {
-      console.error('Error fetching current user:', error);
-    }
-  };
-
-  useEffect(() => {
-    const loadPermissions = async () => {
-      if (currentUser && project) {
-        const permissions = {
-          can_create_phase: await checkPermission('create_phase'),
-          can_edit_phase: await checkPermission('edit_phase'),
-          can_delete_phase: await checkPermission('delete_phase'),
-          can_create_task: await checkPermission('create_task'),
-          can_edit_task: await checkPermission('edit_task'),
-          can_delete_task: await checkPermission('delete_task'),
-          can_assign_task: await checkPermission('assign_task'),
-          can_delete_project: await checkPermission('delete_project'),
-        };
-        setUserPermissions(permissions);
-      }
-    };
-    loadPermissions();
-  }, [currentUser, project]);
-
-  const checkPermission = async (permissionType: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}/check-permission?permission=${permissionType}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data.hasPermission;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error checking permission:', error);
-      return false;
     }
   };
 
@@ -366,22 +290,10 @@ export default function ProjectDetail() {
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'project_manager': return 'bg-purple-100 text-purple-800';
-      case 'lead_full_stack_developer': return 'bg-orange-100 text-orange-800';
-      case 'full_stack_developer': return 'bg-blue-100 text-blue-800';
-      case 'seo_developer': return 'bg-green-100 text-green-800';
-      case 'client': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   // Filter phases by template
   const filteredPhases = project?.phases.filter(phase => {
     if (activeTemplate === 'all') return true;
-
+    
     const template = project.projecttemplates.find(pt => pt.templateid === phase.templateid);
     return template?.templates.category === activeTemplate;
   }) || [];
@@ -429,68 +341,23 @@ export default function ProjectDetail() {
             &larr; Back to Projects
           </button>
         </div>
-
+        
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{project.projectname}</h1>
               <p className="text-gray-600 mb-4">{project.description}</p>
-
-              {/* Creator Information */}
-              <div className="flex flex-wrap gap-4 mb-4">
-                {project.creator && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Created by:</span>
-                    <div className="flex items-center gap-2">
-                      {project.creator.avatar_url && (
-                        <img
-                          src={project.creator.avatar_url}
-                          alt={project.creator.name}
-                          className="w-6 h-6 rounded-full"
-                        />
-                      )}
-                      <span className="font-medium">{project.creator.name}</span>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getRoleColor(project.creator.role)}`}>
-                        {project.creator.role.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {project.updater && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Last updated by:</span>
-                    <div className="flex items-center gap-2">
-                      {project.updater.avatar_url && (
-                        <img
-                          src={project.updater.avatar_url}
-                          alt={project.updater.name}
-                          className="w-6 h-6 rounded-full"
-                        />
-                      )}
-                      <span className="font-medium">{project.updater.name}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Project Type and Creation Date */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor('Not Started')}`}>
                   {project.projecttype}
                 </span>
                 <span className="text-sm text-gray-500">
                   Created: {new Date(project.createdat).toLocaleDateString()}
                 </span>
-                {project.project_token && (
-                  <span className="text-sm text-gray-500">
-                    Token: {project.project_token.substring(0, 8)}...
-                  </span>
-                )}
               </div>
             </div>
           </div>
-
+          
           {/* Templates Overview */}
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-3">Included Templates</h3>
@@ -510,14 +377,12 @@ export default function ProjectDetail() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">Project Phases</h2>
-            {userPermissions.can_create_phase && (
-              <button
-                onClick={() => setShowAddPhase(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
-              >
-                Add Phase
-              </button>
-            )}
+            <button
+              onClick={() => setShowAddPhase(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+            >
+              Add Phase
+            </button>
           </div>
 
           {/* Template Filter */}
@@ -526,10 +391,11 @@ export default function ProjectDetail() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setActiveTemplate('all')}
-                className={`px-3 py-1 rounded-full text-sm ${activeTemplate === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700'
-                  }`}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  activeTemplate === 'all' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-200 text-gray-700'
+                }`}
               >
                 All Templates
               </button>
@@ -537,10 +403,11 @@ export default function ProjectDetail() {
                 <button
                   key={pt.templateid}
                   onClick={() => setActiveTemplate(pt.templates.category)}
-                  className={`px-3 py-1 rounded-full text-sm ${activeTemplate === pt.templates.category
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700'
-                    }`}
+                  className={`px-3 py-1 rounded-full text-sm ${
+                    activeTemplate === pt.templates.category
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
                 >
                   {pt.templates.category}
                 </button>
@@ -598,10 +465,8 @@ export default function ProjectDetail() {
             {filteredPhases.length > 0 ? (
               filteredPhases.map((phase) => {
                 const phaseTemplate = project.projecttemplates.find(pt => pt.templateid === phase.templateid);
-                const templateCategory = phaseTemplate?.templates.category ||
-                  phase.templates?.category ||
-                  'Unknown';
-
+                const templateCategory = phaseTemplate?.templates.category || 'Unknown';
+                
                 return (
                   <div key={phase.phaseid} className={`border-l-4 rounded-lg p-4 ${getTemplateColor(templateCategory)}`}>
                     <div className="flex justify-between items-start mb-3">
@@ -622,16 +487,9 @@ export default function ProjectDetail() {
                           )}
                         </div>
                         {editingPhase?.phaseId !== phase.phaseid && (
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(phase.status)}`}>
-                              {phase.status}
-                            </span>
-                            {phase.creator && (
-                              <span className="text-xs text-gray-500">
-                                by {phase.creator.name}
-                              </span>
-                            )}
-                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(phase.status)}`}>
+                            {phase.status}
+                          </span>
                         )}
                       </div>
                       <div className="flex gap-2">
@@ -649,38 +507,32 @@ export default function ProjectDetail() {
                           </>
                         ) : (
                           <>
-                            {userPermissions.can_edit_phase && (
-                              <button
-                                onClick={() => setEditingPhase({ phaseId: phase.phaseid, name: phase.phasename })}
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                Edit
-                              </button>
-                            )}
-                            {userPermissions.can_delete_phase && (
-                              <button
-                                onClick={() => handleDeletePhase(phase.phaseid)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                Delete
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setEditingPhase({ phaseId: phase.phaseid, name: phase.phasename })}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeletePhase(phase.phaseid)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              Delete
+                            </button>
                           </>
                         )}
                       </div>
                     </div>
-
+                    
                     <div className="mb-4">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="font-medium text-gray-700">Tasks</h4>
-                        {userPermissions.can_create_task && (
-                          <button
-                            onClick={() => setShowAddTask(phase.phaseid)}
-                            className="text-sm text-blue-600 hover:text-blue-800"
-                          >
-                            + Add Task
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setShowAddTask(phase.phaseid)}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          + Add Task
+                        </button>
                       </div>
                       {showAddTask === phase.phaseid && (
                         <div className="mb-4 p-3 bg-white rounded-lg border">
@@ -750,11 +602,6 @@ export default function ProjectDetail() {
                                     <span className={task.status === 'Completed' ? 'line-through text-gray-500' : ''}>
                                       {task.taskdescription}
                                     </span>
-                                    {task.creator && (
-                                      <span className="text-xs text-gray-400">
-                                        by {task.creator.name}
-                                      </span>
-                                    )}
                                   </div>
                                 )}
                               </div>
@@ -768,25 +615,21 @@ export default function ProjectDetail() {
                                   <option value="In Progress">In Progress</option>
                                   <option value="Completed">Completed</option>
                                 </select>
-
+                                
                                 {editingTask?.taskId !== task.taskid && (
                                   <>
-                                    {userPermissions.can_edit_task && (
-                                      <button
-                                        onClick={() => setEditingTask({ taskId: task.taskid, description: task.taskdescription })}
-                                        className="text-xs text-blue-600 hover:text-blue-800"
-                                      >
-                                        Edit
-                                      </button>
-                                    )}
-                                    {userPermissions.can_delete_task && (
-                                      <button
-                                        onClick={() => handleDeleteTask(task.taskid)}
-                                        className="text-xs text-red-600 hover:text-red-800"
-                                      >
-                                        Delete
-                                      </button>
-                                    )}
+                                    <button
+                                      onClick={() => setEditingTask({ taskId: task.taskid, description: task.taskdescription })}
+                                      className="text-xs text-blue-600 hover:text-blue-800"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteTask(task.taskid)}
+                                      className="text-xs text-red-600 hover:text-red-800"
+                                    >
+                                      Delete
+                                    </button>
                                   </>
                                 )}
                               </div>
@@ -805,15 +648,6 @@ export default function ProjectDetail() {
             )}
           </div>
         </div>
-
-        {/* Permission Manager */}
-        {currentUser && project && (
-          <ProjectPermissionsManager
-            projectId={parseInt(projectId)}
-            currentUserId={currentUser.id}
-            currentUserRole={currentUser.role}
-          />
-        )}
       </div>
     </div>
   );

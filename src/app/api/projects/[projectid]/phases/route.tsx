@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from './../../../sutils/supabaseConfig';
 
+import { createClient } from '@/utils/supabase/server';
+import { hasPermission, checkPhasePermission } from '@/utils/permissionHelpers';
+
 // GET all phases for a project
 export async function GET(
   request: Request,
@@ -8,6 +11,21 @@ export async function GET(
 ) {
   try {
     const { projectid } = await params;
+    const projectId = parseInt(projectid);
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has view permission for phases
+    const canView = await hasPermission(supabase, user.id, projectId, 'view_phase');
+    if (!canView) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
 
     const { data: phases, error: phasesError } = await supabase
       .from('phases')
@@ -25,7 +43,7 @@ export async function GET(
           )
         )
       `)
-      .eq('projectid', parseInt(projectid))
+      .eq('projectid', projectId)
       .order('phaseorder', { ascending: true });
 
     if (phasesError) {
@@ -53,8 +71,24 @@ export async function POST(
 ) {
   try {
     const { projectid } = await params;
+    const projectId = parseInt(projectid);
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user can create phases
+    const canCreate = await hasPermission(supabase, user.id, projectId, 'create_phase');
+    if (!canCreate) {
+      return NextResponse.json({ error: 'Insufficient permissions to create phase' }, { status: 403 });
+    }
+
     const body = await request.json();
-    const { phasename, phaseorder, templateid } = body; // Added templateid
+    const { phasename, phaseorder, templateid } = body;
 
     if (!phasename) {
       return NextResponse.json(
@@ -85,7 +119,8 @@ export async function POST(
           phasename,
           phaseorder: order,
           status: 'Not Started',
-          templateid: templateid || null // Added templateid here
+          templateid: templateid || null,
+          created_by: user.id
         }
       ])
       .select(`

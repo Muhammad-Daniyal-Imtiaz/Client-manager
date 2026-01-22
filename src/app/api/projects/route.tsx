@@ -1,212 +1,180 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '../sutils/supabaseConfig';
+import { supabase } from './../sutils/supabaseConfig';
+import { createClient } from '@/utils/supabase/server';
 
-// GET method to fetch all projects
-export async function GET() {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ projectid: string }> }
+) {
   try {
-    const { data: projects, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        projecttemplates (
-          projecttemplateid,
-          templateid,
-          templates:templates!projecttemplates_templateid_fkey (
-            templatename,
-            category
-          )
-        )
-      `)
-      .order('createdat', { ascending: false });
+    const { projectid } = await params;
+    const projectId = parseInt(projectid);
+    const supabase = await createClient();
 
-    if (error) {
-      console.error('Error fetching projects:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch projects', details: error.message },
-        { status: 500 }
-      );
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return NextResponse.json({ projects: projects || [] }, { status: 200 });
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
+    if (!currentUser || !['admin', 'project_manager', 'lead_full_stack_developer'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const {
+      targetUserId,
+      can_create_phase,
+      can_edit_phase,
+      can_delete_phase,
+      can_create_task,
+      can_edit_task,
+      can_delete_task,
+      can_assign_task,
+      can_delete_project,
+      expires_at
+    } = body;
+
+    if (!targetUserId) {
+      return NextResponse.json({ error: 'Target user ID is required' }, { status: 400 });
+    }
+
+    const { data: permission, error } = await supabase
+      .from('user_project_permissions')
+      .upsert({
+        userid: targetUserId,
+        projectid: projectId,
+        can_create_phase: can_create_phase || false,
+        can_edit_phase: can_edit_phase || false,
+        can_delete_phase: can_delete_phase || false,
+        can_create_task: can_create_task || false,
+        can_edit_task: can_edit_task || false,
+        can_delete_task: can_delete_task || false,
+        can_assign_task: can_assign_task || false,
+        can_delete_project: can_delete_project || false,
+        granted_by: user.id,
+        expires_at: expires_at || null,
+        is_active: true
+      }, {
+        onConflict: 'userid,projectid'
+      })
+      .select(`
+        *,
+        users!user_project_permissions_userid_fkey (id, name, email, role, avatar_url),
+        granted_by_user:users!user_project_permissions_granted_by_fkey (id, name, email, avatar_url)
+      `)
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ permission }, { status: 200 });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error granting permission:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch projects' },
+      { error: 'Failed to grant permission' },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ projectid: string }> }
+) {
   try {
-    const body = await request.json();
-    const { projectname, description, projecttype, createdbyuserid, useAllTemplates = true } = body;
+    const { projectid } = await params;
+    const projectId = parseInt(projectid);
+    const supabase = await createClient();
 
-    if (!projectname) {
-      return NextResponse.json(
-        { error: 'Project name is required' },
-        { status: 400 }
-      );
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Create the project
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .insert([
-        {
-          projectname,
-          description: description || '',
-          projecttype: projecttype || 'General',
-          createdbyuserid: createdbyuserid || 1,
-          createdat: new Date().toISOString()
-        }
-      ])
-      .select()
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
       .single();
 
-    if (projectError) {
-      console.error('Project creation error:', projectError);
-      return NextResponse.json(
-        { error: 'Failed to create project', details: projectError.message },
-        { status: 500 }
-      );
+    if (!currentUser || !['admin', 'project_manager', 'lead_full_stack_developer'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // 2. Get all templates
-    const { data: allTemplates, error: templatesError } = await supabase
-      .from('templates')
-      .select('templateid, templatename, category');
+    const { data: permissions, error } = await supabase
+      .from('user_project_permissions')
+      .select(`
+        *,
+        users!user_project_permissions_userid_fkey (id, name, email, role, avatar_url),
+        granted_by_user:users!user_project_permissions_granted_by_fkey (id, name, email, avatar_url)
+      `)
+      .eq('projectid', projectId)
+      .eq('is_active', true);
 
-    if (templatesError) {
-      console.error('Templates fetch error:', templatesError);
-      // Continue with project creation even if templates fail
-      return NextResponse.json(
-        { 
-          project, 
-          message: 'Project created but templates may not be added' 
-        },
-        { status: 201 }
-      );
-    }
+    if (error) throw error;
 
-    // Filter to only include the 5 marketing templates if useAllTemplates is true
-    const templatesToAdd = useAllTemplates 
-      ? allTemplates?.filter(t => 
-          ['SEO', 'Email Marketing', 'Social Media', 'Automation', 'Graphic Design']
-          .includes(t.category)
-        ) || []
-      : allTemplates || [];
-
-    // 3. Add templates to project
-    for (const template of templatesToAdd) {
-      try {
-        // Add project template
-        const { error: projectTemplateError } = await supabase
-          .from('projecttemplates')
-          .insert({
-            projectid: project.projectid,
-            templateid: template.templateid,
-            isactive: true
-          });
-
-        if (projectTemplateError) {
-          console.error(`Error adding template ${template.category}:`, projectTemplateError);
-          continue; // Continue with other templates
-        }
-
-        // 4. Get template phases
-        const { data: templatePhases, error: phasesError } = await supabase
-          .from('templatephases')
-          .select('*')
-          .eq('templateid', template.templateid)
-          .order('phaseorder', { ascending: true });
-
-        if (phasesError) {
-          console.error(`Error fetching phases for template ${template.category}:`, phasesError);
-          continue;
-        }
-
-        if (!templatePhases || templatePhases.length === 0) {
-          console.log(`No phases found for template ${template.category}`);
-          continue;
-        }
-
-        // 5. Create project phases for each template phase
-        for (const templatePhase of templatePhases) {
-          try {
-            // Create project phase
-            const { data: projectPhase, error: phaseCreateError } = await supabase
-              .from('phases')
-              .insert({
-                projectid: project.projectid,
-                templateid: template.templateid,
-                phasename: templatePhase.phasename,
-                phaseorder: templatePhase.phaseorder,
-                status: 'Not Started'
-              })
-              .select()
-              .single();
-
-            if (phaseCreateError) {
-              console.error(`Error creating phase ${templatePhase.phasename}:`, phaseCreateError);
-              continue;
-            }
-
-            // 6. Get template tasks for this phase
-            const { data: templateTasks, error: tasksError } = await supabase
-              .from('templatetasks')
-              .select('*')
-              .eq('templatephaseid', templatePhase.templatephaseid)
-              .order('templatetaskid', { ascending: true });
-
-            if (tasksError) {
-              console.error(`Error fetching tasks for phase ${templatePhase.phasename}:`, tasksError);
-              continue;
-            }
-
-            if (!templateTasks || templateTasks.length === 0) {
-              console.log(`No tasks found for phase ${templatePhase.phasename}`);
-              continue;
-            }
-
-            // 7. Create project tasks for each template task
-            const taskPromises = templateTasks.map(templateTask =>
-              supabase
-                .from('project_tasks')
-                .insert({
-                  phaseid: projectPhase.phaseid,
-                  taskdescription: templateTask.taskdescription,
-                  status: 'Not Started'
-                })
-            );
-
-            await Promise.all(taskPromises);
-
-          } catch (phaseError) {
-            console.error(`Error processing phase ${templatePhase.phasename}:`, phaseError);
-            continue;
-          }
-        }
-
-      } catch (templateError) {
-        console.error(`Error processing template ${template.category}:`, templateError);
-        continue; // Continue with other templates
-      }
-    }
-
-    return NextResponse.json(
-      { 
-        project, 
-        message: 'Project created successfully with all templates, phases, and tasks' 
-      },
-      { status: 201 }
-    );
-
+    return NextResponse.json({ permissions: permissions || [] }, { status: 200 });
   } catch (error) {
-    console.error('Error creating project:', error);
+    console.error('Error fetching permissions:', error);
     return NextResponse.json(
-      { error: 'Failed to create project', details: error.message },
+      { error: 'Failed to fetch permissions' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ projectid: string }> }
+) {
+  try {
+    const { projectid } = await params;
+    const projectId = parseInt(projectid);
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!currentUser || !['admin', 'project_manager', 'lead_full_stack_developer'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const url = new URL(request.url);
+    const targetUserId = url.searchParams.get('userid');
+
+    if (!targetUserId) {
+      return NextResponse.json({ error: 'Target user ID is required' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('user_project_permissions')
+      .update({ is_active: false })
+      .eq('userid', targetUserId)
+      .eq('projectid', projectId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ message: 'Permission revoked successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('Error revoking permission:', error);
+    return NextResponse.json(
+      { error: 'Failed to revoke permission' },
       { status: 500 }
     );
   }

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { supabase } from '../../../../sutils/supabaseConfig';
 
 
+import { createClient } from '@/utils/supabase/server';
+import { hasPermission, canDeleteProject, getUserWithRole } from '@/utils/permissionHelpers';
+
 // Add GET method to fetch a specific phase
 export async function GET(
   request: Request,
@@ -9,11 +12,40 @@ export async function GET(
 ) {
   try {
     const { phaseid } = await params;
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get phase to get project ID
+    const { data: phaseData, error: phaseFetchError } = await supabase
+      .from('phases')
+      .select('projectid')
+      .eq('phaseid', parseInt(phaseid))
+      .single();
+
+    if (phaseFetchError || !phaseData) {
+      return NextResponse.json({ error: 'Phase not found' }, { status: 404 });
+    }
+
+    // Check if user has view permission for phases
+    const canView = await hasPermission(supabase, user.id, phaseData.projectid, 'view_phase');
+    if (!canView) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
 
     const { data: phase, error: phaseError } = await supabase
       .from('phases')
       .select(`
         *,
+        templates (
+          templatename,
+          category
+        ),
         project_tasks (
           *,
           project_task_assignments (
@@ -56,9 +88,25 @@ export async function PUT(
   { params }: { params: Promise<{ projectid: string; phaseid: string }> }
 ) {
   try {
-    const { phaseid } = await params;
+    const { phaseid, projectid } = await params;
+    const projectId = parseInt(projectid);
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user can edit phases
+    const canEdit = await hasPermission(supabase, user.id, projectId, 'edit_phase');
+    if (!canEdit) {
+      return NextResponse.json({ error: 'Insufficient permissions to edit phase' }, { status: 403 });
+    }
+
     const body = await request.json();
-    const { phasename, status } = body;
+    const { phasename, status, templateid } = body;
 
     if (!phasename) {
       return NextResponse.json(
@@ -67,11 +115,22 @@ export async function PUT(
       );
     }
 
+    const updateData: any = { phasename, status };
+    if (templateid !== undefined) {
+      updateData.templateid = templateid;
+    }
+
     const { data: phase, error: phaseError } = await supabase
       .from('phases')
-      .update({ phasename, status })
+      .update(updateData)
       .eq('phaseid', parseInt(phaseid))
-      .select()
+      .select(`
+        *,
+        templates (
+          templatename,
+          category
+        )
+      `)
       .single();
 
     if (phaseError) throw phaseError;
@@ -91,7 +150,51 @@ export async function DELETE(
   { params }: { params: Promise<{ projectid: string; phaseid: string }> }
 ) {
   try {
-    const { phaseid } = await params;
+    const { phaseid, projectid } = await params;
+    const projectId = parseInt(projectid);
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get the phase to check who created it
+    const { data: phase, error: phaseFetchError } = await supabase
+      .from('phases')
+      .select('created_by, templates (category)')
+      .eq('phaseid', parseInt(phaseid))
+      .single();
+
+    if (phaseFetchError) {
+      return NextResponse.json({ error: 'Phase not found' }, { status: 404 });
+    }
+
+    const userData = await getUserWithRole(supabase, user.id);
+
+    // Check permissions based on role and phase creator
+    if (userData?.role === 'lead_full_stack_developer' && phase?.created_by) {
+      // Lead developer cannot delete phases created by admin or project manager
+      const { data: creatorRole } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', phase.created_by)
+        .single();
+
+      if (creatorRole?.role === 'admin' || creatorRole?.role === 'project_manager') {
+        return NextResponse.json({
+          error: 'Cannot delete phases created by admin or project manager'
+        }, { status: 403 });
+      }
+    }
+
+    // Check if user can delete phases
+    const canDelete = await hasPermission(supabase, user.id, projectId, 'delete_phase');
+    if (!canDelete) {
+      return NextResponse.json({ error: 'Insufficient permissions to delete phase' }, { status: 403 });
+    }
 
     const { error } = await supabase
       .from('phases')

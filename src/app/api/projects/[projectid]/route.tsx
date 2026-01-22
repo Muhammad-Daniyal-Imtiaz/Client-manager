@@ -1,15 +1,30 @@
 import { NextResponse } from 'next/server';
 import { supabase } from './../../sutils/supabaseConfig';
+import { createClient } from '@/utils/supabase/server';
+import { hasPermission, canDeleteProject } from '@/utils/permissionHelpers';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ projectid: string }> }
 ) {
   try {
-    // Await params first
     const { projectid } = await params;
     const projectId = parseInt(projectid);
-
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Check if user has view permission for this project
+    const canView = await hasPermission(supabase, user.id, projectId, 'view_project');
+    if (!canView) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+    
     // Fetch project
     const { data: project, error: projectError } = await supabase
       .from('projects')
@@ -89,7 +104,7 @@ export async function GET(
       console.error('Templates fetch error:', templatesError);
     }
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       project: {
         ...project,
         phases: phasesWithTasks,
@@ -106,7 +121,6 @@ export async function GET(
   }
 }
 
-// Add other methods if needed (PUT, DELETE)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ projectid: string }> }
@@ -114,6 +128,21 @@ export async function PUT(
   try {
     const { projectid } = await params;
     const projectId = parseInt(projectid);
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Check if user has edit permission for this project
+    const canEdit = await hasPermission(supabase, user.id, projectId, 'edit_project');
+    if (!canEdit) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+    
     const body = await request.json();
     const { projectname, description, projecttype } = body;
 
@@ -126,8 +155,8 @@ export async function PUT(
 
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .update({
-        projectname,
+      .update({ 
+        projectname, 
         description: description || null,
         projecttype: projecttype || 'General'
       })
@@ -161,6 +190,20 @@ export async function DELETE(
   try {
     const { projectid } = await params;
     const projectId = parseInt(projectid);
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Check if user can delete this project
+    const canDelete = await canDeleteProject(supabase, user.id, projectId);
+    if (!canDelete) {
+      return NextResponse.json({ error: 'Insufficient permissions to delete project' }, { status: 403 });
+    }
 
     const { error } = await supabase
       .from('projects')

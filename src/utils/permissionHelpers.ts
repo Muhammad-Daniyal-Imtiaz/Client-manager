@@ -223,19 +223,13 @@ export async function checkPhasePermission(
             return true
 
         case 'lead_full_stack_developer':
-            if (action === 'delete') {
-                return isAssigned || isProjectCreator || hasCustomPermission
-            }
-            return action === 'create' || action === 'update' || action === 'view' || hasCustomPermission
+            return true
 
         case 'full_stack_developer':
-            if (hasCustomPermission) {
-                return action === 'create' || action === 'update' || action === 'view'
-            }
             return action === 'update' || action === 'view'
 
         case 'client':
-            return action === 'view' && (isProjectCreator || hasCustomPermission)
+            return action === 'view' && (isProjectCreator)
 
         default:
             return false
@@ -294,19 +288,13 @@ export async function checkTaskPermission(
             return true
 
         case 'lead_full_stack_developer':
-            if (action === 'delete') {
-                return isAssigned || isProjectCreator || hasCustomPermission
-            }
-            return action === 'create' || action === 'update' || action === 'view' || hasCustomPermission
+            return true
 
         case 'full_stack_developer':
-            if (hasCustomPermission) {
-                return action === 'create' || action === 'update' || action === 'view'
-            }
             return action === 'update' || action === 'view'
 
         case 'client':
-            return action === 'view' && (isProjectCreator || hasCustomPermission)
+            return action === 'view' && isProjectCreator
 
         default:
             return false
@@ -323,25 +311,9 @@ export async function hasPermission(
     const hasCustomPermission = await checkCustomPermission(supabase, userId, projectId, permissionType)
     if (hasCustomPermission) return true
 
-    // Check if user has ANY custom permission for elevated privileges
-    const { data: anyCustomPermission } = await supabase
-        .from('user_project_permissions')
-        .select('permissionid')
-        .eq('userid', userId)
-        .eq('projectid', projectId)
-        .eq('is_active', true)
-        .single()
+    // Custom permissions check already handled at the beginning of this function.
+    // If we are here, we are checking role-based defaults.
 
-    if (anyCustomPermission) {
-        switch (permissionType) {
-            case 'create_phase':
-            case 'edit_phase':
-            case 'create_task':
-            case 'edit_task':
-            case 'assign_task':
-                return true
-        }
-    }
 
     const user = await getUserWithRole(supabase, userId)
     if (!user) return false

@@ -167,8 +167,8 @@ export async function checkPhaseCreatorPermission(
             return { canDelete: true, canEdit: true, creatorId }
 
         case 'full_stack_developer':
-            // Cannot delete phases at all
-            return { canDelete: false, canEdit: true, creatorId }
+            // Cannot delete or edit phases at all
+            return { canDelete: false, canEdit: false, creatorId }
 
         default:
             return { canDelete: false, canEdit: false, creatorId }

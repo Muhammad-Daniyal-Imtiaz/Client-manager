@@ -40,8 +40,8 @@ import MessagingSystem from "./Messaging/page";
 import AdminTeamDocumentsPage from "./team-documents/page";
 import AdminDocumentsManager from "./AdminDocumentsManager/page";
 import VClientPage from "../full_stack_developer/Projects_report/page";
-import ProjectsHome from "./Projects/page";
-import ProjectProgress from "./Projects/Project_Progress/page";
+import ProjectsHome from "./Projectsold/page";
+import ProjectProgress from "./Projectsold/Project_Progress/page";
 
 interface UserData {
   id: string;

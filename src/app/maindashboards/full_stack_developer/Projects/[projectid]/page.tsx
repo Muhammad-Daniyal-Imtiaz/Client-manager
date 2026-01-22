@@ -622,9 +622,15 @@ export default function ProjectDetail() {
                         </div>
                         {editingPhase?.phaseId !== phase.phaseid && (
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(phase.status)}`}>
-                              {phase.status}
-                            </span>
+                            <select
+                              value={phase.status}
+                              onChange={(e) => handleUpdatePhase(phase.phaseid, phase.phasename, e.target.value)}
+                              className={`px-2 py-1 rounded-full text-xs font-medium border-none focus:ring-2 focus:ring-blue-500 ${getStatusColor(phase.status)} cursor-pointer`}
+                            >
+                              <option value="Not Started">Not Started</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Completed">Completed</option>
+                            </select>
                             {phase.creator && (
                               <span className="text-xs text-gray-500">
                                 by {phase.creator.name}
@@ -648,7 +654,7 @@ export default function ProjectDetail() {
                           </>
                         ) : (
                           <>
-                            {userPermissions.can_edit_phase && (
+                            {userPermissions.can_edit_phase && currentUser && (currentUser.role !== 'full_stack_developer' || phase.created_by === currentUser.id) && (
                               <button
                                 onClick={() => setEditingPhase({ phaseId: phase.phaseid, name: phase.phasename })}
                                 className="text-blue-600 hover:text-blue-800"
@@ -656,14 +662,20 @@ export default function ProjectDetail() {
                                 Edit
                               </button>
                             )}
-                            {userPermissions.can_delete_phase && (
-                              <button
-                                onClick={() => handleDeletePhase(phase.phaseid)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                Delete
-                              </button>
-                            )}
+                            {userPermissions.can_delete_phase && currentUser && (
+                              currentUser.role === 'admin' ||
+                              currentUser.role === 'project_manager' ||
+                              (currentUser.role === 'lead_full_stack_developer' &&
+                                phase.creator?.role !== 'admin' &&
+                                phase.creator?.role !== 'project_manager')
+                            ) && (
+                                <button
+                                  onClick={() => handleDeletePhase(phase.phaseid)}
+                                  className="text-red-600 hover:text-red-800"
+                                >
+                                  Delete
+                                </button>
+                              )}
                           </>
                         )}
                       </div>
@@ -778,14 +790,20 @@ export default function ProjectDetail() {
                                         Edit
                                       </button>
                                     )}
-                                    {userPermissions.can_delete_task && (
-                                      <button
-                                        onClick={() => handleDeleteTask(task.taskid)}
-                                        className="text-xs text-red-600 hover:text-red-800"
-                                      >
-                                        Delete
-                                      </button>
-                                    )}
+                                    {userPermissions.can_delete_task && currentUser && (
+                                      currentUser.role === 'admin' ||
+                                      currentUser.role === 'project_manager' ||
+                                      (currentUser.role === 'lead_full_stack_developer' &&
+                                        task.creator?.role !== 'admin' &&
+                                        task.creator?.role !== 'project_manager')
+                                    ) && (
+                                        <button
+                                          onClick={() => handleDeleteTask(task.taskid)}
+                                          className="text-xs text-red-600 hover:text-red-800"
+                                        >
+                                          Delete
+                                        </button>
+                                      )}
                                   </>
                                 )}
                               </div>
@@ -806,7 +824,7 @@ export default function ProjectDetail() {
         </div>
 
         {/* Permission Manager */}
-        {currentUser && project && (
+        {currentUser && project && ['admin', 'project_manager', 'lead_full_stack_developer'].includes(currentUser.role) && (
           <ProjectPermissionsManager
             projectId={parseInt(projectId)}
             currentUserId={currentUser.id}

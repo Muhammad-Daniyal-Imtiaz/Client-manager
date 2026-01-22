@@ -44,11 +44,25 @@ export default function Home() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [expandedTemplate, setExpandedTemplate] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
+    fetchUser();
     fetchProjects();
     fetchTemplates();
   }, []);
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch('/api/auth/user');
+      if (response.ok) {
+        const data = await response.json();
+        setUserRole(data.user?.role || null);
+      }
+    } catch (err) {
+      console.error('Error fetching user:', err);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -127,7 +141,7 @@ export default function Home() {
   };
 
   const handleProjectClick = (projectId: number) => {
-    router.push(`/maindashboards/Admin/Projects/${projectId}`);
+    router.push(`/maindashboards/full_stack_developer/Projects/${projectId}`);
   };
 
   const toggleTemplateExpand = (templateId: number) => {
@@ -203,13 +217,14 @@ export default function Home() {
               >
                 {showTemplates ? 'Hide Templates' : 'View All Templates'}
               </button>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
-              >
-                Create New Project
-              </button>
-            </div>
+              {['admin', 'project_manager', 'lead_full_stack_developer', 'client'].includes(userRole || '') && (
+                <button
+                  onClick={() => setShowCreate(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+                >
+                  Create New Project
+                </button>
+              )}            </div>
           </div>
         </div>
 
@@ -408,13 +423,14 @@ export default function Home() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
                 <p className="text-gray-600 mb-4">Create your first project to get started</p>
-                <button
-                  onClick={() => setShowCreate(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
-                >
-                  Create Project
-                </button>
-              </div>
+                {['admin', 'project_manager', 'lead_full_stack_developer', 'client'].includes(userRole || '') && (
+                  <button
+                    onClick={() => setShowCreate(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+                  >
+                    Create Project
+                  </button>
+                )}              </div>
             )}
           </div>
         </div>

@@ -3,7 +3,7 @@ import { supabase } from '../../../../sutils/supabaseConfig';
 
 
 import { createClient } from '@/utils/supabase/server';
-import { hasPermission, canDeleteProject, getUserWithRole } from '@/utils/permissionHelpers';
+import { hasPermission, checkCustomPermission, canDeleteProject, getUserWithRole } from '@/utils/permissionHelpers';
 
 // Add GET method to fetch a specific phase
 export async function GET(
@@ -99,6 +99,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userData = await getUserWithRole(supabase, user.id);
+
     // Check if user can edit phases
     const canEdit = await hasPermission(supabase, user.id, projectId, 'edit_phase');
     if (!canEdit) {
@@ -108,17 +110,35 @@ export async function PUT(
     const body = await request.json();
     const { phasename, status, templateid } = body;
 
-    if (!phasename) {
+    // Additional restriction for Full Stack Developers
+    if (userData?.role === 'full_stack_developer') {
+      // Check if they are trying to change the name
+      const { data: currentPhase } = await supabase
+        .from('phases')
+        .select('phasename')
+        .eq('phaseid', parseInt(phaseid))
+        .single();
+
+      if (currentPhase && phasename && currentPhase.phasename !== phasename) {
+        // Only allow name change if they have explicit custom permission
+        const hasCustomEditPermission = await checkCustomPermission(supabase, user.id, projectId, 'edit_phase');
+        if (!hasCustomEditPermission) {
+          return NextResponse.json({ error: 'Full Stack Developers cannot change phase names' }, { status: 403 });
+        }
+      }
+    }
+
+    if (!phasename && !status && templateid === undefined) {
       return NextResponse.json(
-        { error: 'Phase name is required' },
+        { error: 'Nothing to update' },
         { status: 400 }
       );
     }
 
-    const updateData: any = { phasename, status };
-    if (templateid !== undefined) {
-      updateData.templateid = templateid;
-    }
+    const updateData: any = {};
+    if (phasename) updateData.phasename = phasename;
+    if (status) updateData.status = status;
+    if (templateid !== undefined) updateData.templateid = templateid;
 
     const { data: phase, error: phaseError } = await supabase
       .from('phases')

@@ -26,7 +26,7 @@ export async function POST(
             .eq('id', user.id)
             .single()
 
-        if (!currentUser || !['admin', 'project_manager'].includes(currentUser.role)) {
+        if (!currentUser || !['admin', 'project_manager', 'lead_full_stack_developer'].includes(currentUser.role)) {
             return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
         }
 
@@ -107,7 +107,7 @@ export async function GET(
             .eq('id', user.id)
             .single()
 
-        if (!currentUser || !['admin', 'project_manager'].includes(currentUser.role)) {
+        if (!currentUser || !['admin', 'project_manager', 'lead_full_stack_developer'].includes(currentUser.role)) {
             return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
         }
 
@@ -158,7 +158,7 @@ export async function DELETE(
             .eq('id', user.id)
             .single()
 
-        if (!currentUser || !['admin', 'project_manager'].includes(currentUser.role)) {
+        if (!currentUser || !['admin', 'project_manager', 'lead_full_stack_developer'].includes(currentUser.role)) {
             return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
         }
 
